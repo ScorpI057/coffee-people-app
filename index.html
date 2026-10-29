@@ -130,13 +130,28 @@
             box-shadow: 0 18px 34px -8px rgba(24, 21, 18, 0.2);
         }
 
-        /* Notification Banner Slide */
-        @keyframes slideInTop {
-            0% { transform: translate(-50%, -130%); opacity: 0; }
-            100% { transform: translate(-50%, 0); opacity: 1; }
+        /* Mobile-Safe Notification Banner (No Horizontal Translate Conflict in Telegram iOS WebView) */
+        #sms-notification-banner {
+            position: fixed;
+            top: max(12px, env(safe-area-inset-top, 12px));
+            left: 12px;
+            right: 12px;
+            max-width: 440px;
+            margin: 0 auto;
+            z-index: 300;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @keyframes slideInTopSafe {
+            0% { transform: translateY(-140%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
         .toast-enter {
-            animation: slideInTop 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: slideInTopSafe 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         @keyframes shakeField {
@@ -197,9 +212,9 @@
     </div>
 
     <!-- ==========================================
-         2. SYSTEM NOTIFICATION CENTER (TOP BANNER)
+         2. SYSTEM NOTIFICATION CENTER (MOBILE-SAFE TOP BANNER)
          ========================================== -->
-    <div id="system-toast-center" class="fixed top-3 left-1/2 -translate-x-1/2 z-[90] w-[94%] max-w-md pointer-events-none flex flex-col gap-2"></div>
+    <div id="sms-notification-banner"></div>
 
     <!-- ==========================================
          3. SCROLL TO TOP BUTTON
@@ -856,15 +871,16 @@
                     </button>
                 </div>
 
-                <!-- Staff Login Gate -->
+                <!-- Strict 2FA Staff Login Gate (Zero Pre-filled Credentials) -->
                 <div id="staff-auth-gate" class="p-6 space-y-4 overflow-y-auto">
-                    <div class="bg-cp-blueSoft border border-cp-blue/20 rounded-2xl p-4 text-xs text-cp-blue">
-                        <b>Вход для бариста и менеджера смены:</b> укажите ваше имя и рабочий номер. PIN-код по умолчанию для демонстрации: <b>1234</b>.
+                    <div class="bg-cp-blueSoft border border-cp-blue/20 rounded-2xl p-4 text-xs text-cp-blue leading-relaxed">
+                        <b>Двухфакторная защита смены (2FA):</b> доступ в терминал разрешён только верифицированным сотрудникам COFFEE PEOPLE. Введите ваше имя, рабочий номер из штатного расписания и корпоративный Мастер-ключ филиала, после чего подтвердите вход 6-значным кодом безопасности.
                     </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1">Роль в смене</label>
-                            <select id="staff-role-select" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold">
+                            <select id="staff-role-select" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none">
                                 <option value="Старший бариста">Старший бариста</option>
                                 <option value="Бариста на выдаче">Бариста на выдаче</option>
                                 <option value="Управляющий">Управляющий кофейни</option>
@@ -872,19 +888,47 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1">Имя сотрудника</label>
-                            <input id="staff-name-input" type="text" value="Данияр" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold">
+                            <input id="staff-name-input" type="text" value="" autocomplete="off" placeholder="Введите ваше имя" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1">Рабочий WhatsApp / Телефон</label>
-                            <input id="staff-phone-input" type="tel" oninput="formatKzPhone(this)" value="+7 (777) 902-33-99" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 font-mono text-xs font-bold">
+                            <label class="block text-xs font-bold mb-1">Табельный номер (РК)</label>
+                            <input id="staff-phone-input" type="tel" value="" autocomplete="off" oninput="formatKzPhone(this); resetStaff2faToStep1();" placeholder="+7 (7XX) XXX-XX-XX" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 font-mono text-xs font-bold focus:outline-none">
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <input id="staff-pin-input" type="password" value="1234" placeholder="PIN (1234)" class="w-36 bg-cp-pill rounded-xl px-3.5 py-3 text-center font-mono font-bold text-sm">
-                        <button onclick="loginStaff()" class="flex-1 bg-cp-blue hover:bg-cp-blueDark text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition">
-                            Открыть смену бариста
-                        </button>
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1">Корпоративный Мастер-ключ филиала</label>
+                        <input id="staff-master-key-input" type="password" value="" autocomplete="off" placeholder="Введите секретный ключ смены" class="w-full bg-cp-pill rounded-xl px-3.5 py-3 font-mono font-bold text-xs tracking-wider focus:outline-none">
                     </div>
+
+                    <!-- Step 2: 6-Digit 2FA Security Code Box -->
+                    <div id="staff-2fa-box" class="hidden bg-cp-blueSoft border border-cp-blue/30 rounded-2xl p-4 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-cp-ink">Шаг 2 • Одноразовый 6-значный код 2FA:</span>
+                            <span id="staff-2fa-timer-badge" class="font-mono text-[11px] font-bold text-cp-blue bg-white px-2.5 py-0.5 rounded-md">60 сек</span>
+                        </div>
+                        <p class="text-[11px] text-cp-muted leading-snug">
+                            Код безопасности отправлен в уведомление сверху. Вы также можете продублировать его себе в личный WhatsApp:
+                        </p>
+                        <input id="staff-2fa-code-input" type="text" inputmode="numeric" maxlength="6" value="" autocomplete="off"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6); clearStaffAuthError();"
+                            placeholder="0 0 0 0 0 0"
+                            class="w-full bg-white border border-cp-border focus:border-cp-blue rounded-xl px-3 py-2.5 text-center font-mono font-bold text-lg tracking-[0.35em] focus:outline-none">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span id="staff-2fa-attempts-label" class="font-mono text-cp-muted">Попыток: 3</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="sendStaff2faViaWhatsApp()" class="text-cp-whatsapp font-bold hover:underline">Получить в WhatsApp</button>
+                                <span>•</span>
+                                <button type="button" onclick="resendStaff2faCode()" class="text-cp-blue font-bold hover:underline">Новый 2FA-код</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="staff-auth-error-msg" class="hidden bg-red-50 border border-red-300 text-red-800 text-xs font-semibold px-3.5 py-2.5 rounded-xl"></div>
+
+                    <button onclick="handleStaffAuthStep()" id="staff-auth-submit-btn" class="w-full bg-cp-blue hover:bg-cp-blueDark text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
+                        Шаг 1 • Запросить 6-значный 2FA-код смены
+                    </button>
                 </div>
 
                 <!-- Logged-In Barista KDS Dashboard -->
@@ -894,8 +938,9 @@
                             <button onclick="switchStaffTab('orders')" id="stab-orders" class="px-4 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink">
                                 Очередь заказов (<span id="staff-orders-count" class="font-mono">0</span>)
                             </button>
-                            <button onclick="switchStaffTab('cloud')" id="stab-cloud" class="px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink">
-                                Настройки облака Firebase & SMS
+                            <button onclick="switchStaffTab('cloud')" id="stab-cloud" class="px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1.5">
+                                <i data-lucide="lock" class="w-3 h-3"></i>
+                                <span>Управление и Штат (Защищено)</span>
                             </button>
                         </div>
                         <div class="flex items-center gap-4 pb-2">
@@ -1943,6 +1988,23 @@
             staffOrders: [],
             sessionOrderIds: [],
             activeViewedOrderId: null,
+            staffWhitelist: [
+                '+7 (777) 084-50-92',
+                '+7 (705) 753-01-43',
+                '+7 (777) 902-33-99'
+            ],
+            staffAuthStep: 'step1', // 'step1' | 'step2_2fa'
+            staff2faSession: {
+                phone: '',
+                name: '',
+                role: '',
+                code: null,
+                expiresAt: 0,
+                attemptsLeft: 3,
+                lockedUntil: 0,
+                timerId: null
+            },
+            managerPanelUnlocked: false,
 
             activeModalItem: null,
             modalQty: 1,
@@ -1985,6 +2047,9 @@
         const STORAGE_KEY_REAL_ORDERS = 'cp_real_orders_v1';
         const STORAGE_KEY_ORDER_SEQ = 'cp_order_seq_v1';
         const STORAGE_KEY_SESSION_ORDERS = 'cp_session_order_ids_v1';
+        const STORAGE_KEY_STAFF_WHITELIST = 'cp_staff_whitelist_v1';
+        const BRANCH_MASTER_KEY = 'CP-2026';
+        const MANAGER_ADMIN_PIN = '7777';
 
         function loadAccountsDb() {
             try {
@@ -2076,6 +2141,12 @@
                     if (Array.isArray(parsedIds)) state.sessionOrderIds = parsedIds;
                 }
 
+                const savedWhitelist = localStorage.getItem(STORAGE_KEY_STAFF_WHITELIST);
+                if (savedWhitelist) {
+                    const parsedWl = JSON.parse(savedWhitelist);
+                    if (Array.isArray(parsedWl) && parsedWl.length) state.staffWhitelist = parsedWl;
+                }
+
                 const activePhone = localStorage.getItem(STORAGE_KEY_ACTIVE_PHONE);
                 if (activePhone) {
                     const db = loadAccountsDb();
@@ -2164,22 +2235,23 @@
 
         function showSystemToast(toPhone, title, message, clickCallback = null) {
             playHarmonicChime();
-            const center = document.getElementById('system-toast-center');
+            const center = document.getElementById('sms-notification-banner');
+            if (!center) return;
             const banner = document.createElement('div');
-            banner.className = 'toast-enter bg-[#181512]/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-stone-700 pointer-events-auto flex items-start gap-3 cursor-pointer';
+            banner.className = 'toast-enter w-full bg-[#181512]/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-stone-700 pointer-events-auto flex items-start gap-3 cursor-pointer';
             banner.innerHTML = `
-                <div class="w-10 h-10 rounded-xl bg-cp-blue text-white flex items-center justify-center shrink-0 font-mono font-bold text-[10px]">
+                <div class="w-9 h-9 rounded-xl bg-cp-blue text-white flex items-center justify-center shrink-0 font-mono font-bold text-[10px]">
                     INFO
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-[10px] font-bold text-cp-ochre uppercase tracking-wider">${title}</span>
-                        <span class="font-mono text-[10px] text-stone-400">сейчас</span>
+                        <span class="font-mono text-[10px] font-bold text-cp-ochre uppercase tracking-wider truncate">${title}</span>
+                        <span class="font-mono text-[10px] text-stone-400 shrink-0">сейчас</span>
                     </div>
-                    <div class="font-mono text-[11px] font-medium text-stone-300 truncate">${toPhone || 'COFFEE PEOPLE'}</div>
-                    <p class="text-xs text-stone-100 mt-0.5 leading-snug">${message}</p>
+                    <div class="font-mono text-[11px] font-medium text-stone-300 break-words">${toPhone || 'COFFEE PEOPLE'}</div>
+                    <p class="text-xs text-stone-100 mt-0.5 leading-snug break-words">${message}</p>
                 </div>
-                <button onclick="event.stopPropagation(); this.parentElement.remove();" class="text-stone-400 hover:text-white text-xs font-mono">X</button>
+                <button onclick="event.stopPropagation(); this.parentElement.remove();" class="text-stone-400 hover:text-white text-xs font-mono shrink-0 px-1">X</button>
             `;
             if (clickCallback) {
                 banner.onclick = () => {
@@ -3103,7 +3175,9 @@
             if (state.clientUser) {
                 document.getElementById('client-auth-form-view').classList.add('hidden');
                 document.getElementById('client-profile-view').classList.remove('hidden');
+                syncAllLabels();
             } else {
+                resetOtpFlowToPhoneStep();
                 document.getElementById('client-auth-form-view').classList.remove('hidden');
                 document.getElementById('client-profile-view').classList.add('hidden');
             }
@@ -3114,16 +3188,9 @@
             document.getElementById('client-auth-modal').classList.add('hidden');
         }
 
-        function sendOtpViaWhatsAppSelf() {
-            if (!state.otpSession.code || !state.otpSession.phone) return;
-            const digits = state.otpSession.phone.replace(/\D/g, '');
-            const msg = `COFFEE PEOPLE Петропавловск: Ваш код подтверждения аккаунта: *${state.otpSession.code}* (действует 60 сек).`;
-            window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
         function startOtpCountdown() {
             if (state.otpSession.timerId) clearInterval(state.otpSession.timerId);
-            const updateTimerUi = () => {
+            const updateUi = () => {
                 const badge = document.getElementById('otp-timer-badge');
                 if (!badge) return;
                 const secLeft = Math.max(0, Math.ceil((state.otpSession.expiresAt - Date.now()) / 1000));
@@ -3134,30 +3201,23 @@
                     clearInterval(state.otpSession.timerId);
                 }
             };
-            updateTimerUi();
-            state.otpSession.timerId = setInterval(updateTimerUi, 1000);
+            updateUi();
+            state.otpSession.timerId = setInterval(updateUi, 1000);
         }
 
-        async function issueNewOtpForPhone(phone) {
-            const check = validateKzMobilePhone(phone);
-            if (!check.valid) {
-                triggerInputError('client-reg-phone', check.reason);
-                return;
-            }
-
+        function issueNewOtpForPhone(phone) {
             if (Date.now() < state.otpSession.lockedUntil) {
                 const waitSec = Math.ceil((state.otpSession.lockedUntil - Date.now()) / 1000);
-                triggerInputError('client-otp-input', `Повторный запрос доступен через ${waitSec} сек.`);
+                triggerInputError('client-otp-input', `Слишком много попыток. Повторите через ${waitSec} сек.`);
                 return;
             }
-
-            const randArray = new Uint32Array(1);
-            window.crypto.getRandomValues(randArray);
-            const secretCode = String(1000 + (randArray[0] % 9000));
+            const rand = new Uint32Array(1);
+            window.crypto.getRandomValues(rand);
+            const code4 = String(1000 + (rand[0] % 9000));
 
             state.authStep = 'otp';
             state.otpSession.phone = phone;
-            state.otpSession.code = secretCode;
+            state.otpSession.code = code4;
             state.otpSession.expiresAt = Date.now() + 60000;
             state.otpSession.attemptsLeft = 3;
 
@@ -3168,31 +3228,43 @@
                 otpInp.focus();
             }
             document.getElementById('otp-attempts-label').textContent = 'Попыток: 3';
-            document.getElementById('client-auth-submit-btn').textContent = 'Подтвердить код и сохранить аккаунт';
+            document.getElementById('client-auth-submit-btn').textContent = 'Подтвердить код и войти';
             startOtpCountdown();
 
             showSystemToast(
                 phone,
-                'Код подтверждения COFFEE PEOPLE',
-                `Проверочный код: ${secretCode} (действует 60 сек). Нажмите на уведомление для подстановки кода.`,
+                'КОД ПОДТВЕРЖДЕНИЯ COFFEE PEOPLE',
+                `Ваш проверочный код: ${code4} (действует 60 сек). Нажмите на уведомление, чтобы подставить.`,
                 () => {
-                    const inputEl = document.getElementById('client-otp-input');
-                    if (inputEl) {
-                        inputEl.value = secretCode;
+                    const inp = document.getElementById('client-otp-input');
+                    if (inp) {
+                        inp.value = code4;
                         clearAuthError();
                     }
                 }
             );
         }
 
+        function sendOtpViaWhatsAppSelf() {
+            if (!state.otpSession.code || !state.otpSession.phone) return;
+            const digits = state.otpSession.phone.replace(/\D/g, '');
+            const msg = `COFFEE PEOPLE ID: Ваш проверочный код входа: *${state.otpSession.code}*`;
+            window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
         function resendOtpCode() {
             const phone = document.getElementById('client-reg-phone').value.trim();
+            const v = validateKzMobilePhone(phone);
+            if (!v.valid) {
+                triggerInputError('client-reg-phone', v.reason);
+                return;
+            }
             issueNewOtpForPhone(phone);
         }
 
-        async function handleClientAuthStep() {
+        function handleClientAuthStep() {
             clearAuthError();
-            const name = document.getElementById('client-reg-name').value.trim();
+            const nameInput = document.getElementById('client-reg-name').value.trim();
             const phone = document.getElementById('client-reg-phone').value.trim();
             const pin = document.getElementById('client-reg-pin').value.trim();
 
@@ -3203,52 +3275,51 @@
             }
 
             if (pin.length !== 4) {
-                triggerInputError('client-reg-pin', 'Укажите 4-значный цифровой PIN-код.');
+                triggerInputError('client-reg-pin', 'Укажите 4-значный PIN-код аккаунта.');
                 return;
             }
 
-            // Instant PIN Login Flow for Returning Users
+            const db = loadAccountsDb();
+
             if (state.authModeTab === 'pinlogin') {
-                const db = loadAccountsDb();
-                const acc = db[phone];
-                if (!acc) {
-                    triggerInputError('client-reg-phone', 'Аккаунт с этим номером не найден. Переключитесь на вкладку «Регистрация / Код».');
+                const existing = db[phone];
+                if (!existing) {
+                    triggerInputError('client-reg-phone', 'Аккаунт с этим номером ещё не зарегистрирован. Переключитесь на вкладку «Регистрация».');
                     return;
                 }
-                if (acc.pin && acc.pin !== pin) {
-                    triggerInputError('client-reg-pin', 'Неверный PIN-код аккаунта.');
+                if (existing.pin !== pin) {
+                    triggerInputError('client-reg-pin', 'Неверный 4-значный PIN-код аккаунта.');
                     return;
                 }
-                state.clientUser = acc;
+                state.clientUser = existing;
                 state.activeOrderPhone = phone;
-                syncCupName(acc.name);
+                state.cupName = existing.name;
                 syncAccountToStorage();
                 syncAllLabels();
                 updateCartViews();
                 openClientAuthModal();
-                showSystemToast(phone, 'Вход выполнен', `С возвращением, ${acc.name}! Баланс бонусов: ${acc.bonuses || 0} ₸.`);
+                showSystemToast(phone, 'Вход выполнен', `С возвращением, ${existing.name}! Баланс бонусов: ${existing.bonuses || 0} ₸.`);
                 return;
             }
 
-            // Registration / OTP Verification Flow
-            if (name.length < 2) {
-                triggerInputError('client-reg-name', 'Введите ваше имя для стаканчика (минимум 2 буквы).');
+            if (nameInput.length < 2) {
+                triggerInputError('client-reg-name', 'Введите ваше имя (минимум 2 буквы) для надписи на стаканчике.');
                 return;
             }
 
             if (state.authStep === 'form') {
-                await issueNewOtpForPhone(phone);
+                issueNewOtpForPhone(phone);
                 return;
             }
 
             if (Date.now() < state.otpSession.lockedUntil) {
                 const waitSec = Math.ceil((state.otpSession.lockedUntil - Date.now()) / 1000);
-                triggerInputError('client-otp-input', `Ввод временно заблокирован (${waitSec} сек).`);
+                triggerInputError('client-otp-input', `Ввод заблокирован на ${waitSec} сек.`);
                 return;
             }
 
             if (Date.now() > state.otpSession.expiresAt) {
-                triggerInputError('client-otp-input', 'Срок действия кода истёк. Запросите новый код.');
+                triggerInputError('client-otp-input', 'Срок действия кода истёк. Нажмите «Новый код».');
                 return;
             }
 
@@ -3259,48 +3330,33 @@
                 if (state.otpSession.attemptsLeft <= 0) {
                     state.otpSession.lockedUntil = Date.now() + 30000;
                     state.otpSession.code = null;
-                    triggerInputError('client-otp-input', 'Превышено число попыток. Подождите 30 секунд.');
+                    triggerInputError('client-otp-input', 'Превышено число попыток. Повторите через 30 секунд.');
                     return;
                 }
-                triggerInputError('client-otp-input', `Код не совпадает. Осталось попыток: ${state.otpSession.attemptsLeft}.`);
+                triggerInputError('client-otp-input', `Неверный код. Осталось попыток: ${state.otpSession.attemptsLeft}.`);
                 return;
             }
 
             if (state.otpSession.timerId) clearInterval(state.otpSession.timerId);
-            const db = loadAccountsDb();
-            const existingAcc = db[phone];
-
-            state.clientUser = existingAcc ? {
-                name: name || existingAcc.name,
-                phone,
-                pin,
-                bonuses: existingAcc.bonuses || 0,
-                orders: existingAcc.orders || []
+            const existing = db[phone];
+            state.clientUser = existing ? {
+                ...existing,
+                name: nameInput,
+                pin
             } : {
-                name,
+                name: nameInput,
                 phone,
                 pin,
-                bonuses: 0,
+                bonuses: 100,
                 orders: []
             };
-
-            syncAccountToStorage();
             state.activeOrderPhone = phone;
-            syncCupName(state.clientUser.name);
-            resetOtpFlowToPhoneStep();
-
-            document.getElementById('checkout-phone-input').value = phone;
-            document.getElementById('checkout-name-input').value = state.clientUser.name;
-
+            state.cupName = nameInput;
+            syncAccountToStorage();
             syncAllLabels();
             updateCartViews();
             openClientAuthModal();
-            showSystemToast(phone, 'COFFEE PEOPLE ID', `Аккаунт ${state.clientUser.name} синхронизирован. Кэшбэк 5% активен.`);
-        }
-
-        function syncRecipientPhone(val) {
-            state.activeOrderPhone = val;
-            syncAllLabels();
+            showSystemToast(phone, 'Аккаунт активирован', `${nameInput}, ваш аккаунт привязан к номеру ${phone}. Доступно ${state.clientUser.bonuses} ₸ бонусов.`);
         }
 
         function logoutClient() {
@@ -3308,40 +3364,47 @@
             state.useBonuses = false;
             try { localStorage.removeItem(STORAGE_KEY_ACTIVE_PHONE); } catch (e) {}
             syncAllLabels();
-            closeClientAuthModal();
+            updateCartViews();
+            openClientAuthModal();
+        }
+
+        function syncRecipientPhone(val) {
+            state.activeOrderPhone = val.trim();
         }
 
         function getEffectiveOrderPhone() {
-            const giftEl = document.getElementById('gift-phone-input');
             const giftToggle = document.getElementById('gift-phone-toggle');
-            if (giftToggle && giftToggle.checked && giftEl && giftEl.value.trim().length >= 12) {
-                return giftEl.value.trim();
+            const giftPhone = document.getElementById('gift-phone-input');
+            if (giftToggle && giftToggle.checked && giftPhone && giftPhone.value.trim()) {
+                return giftPhone.value.trim();
             }
-            const chkPhone = document.getElementById('checkout-phone-input').value.trim();
-            if (chkPhone.length >= 12) return chkPhone;
-            if (state.clientUser) return state.clientUser.phone;
-            return '+7 (777) 902-33-99';
+            const chkPhone = document.getElementById('checkout-phone-input');
+            if (chkPhone && chkPhone.value.trim()) return chkPhone.value.trim();
+            if (state.clientUser && state.clientUser.phone) return state.clientUser.phone;
+            return state.activeOrderPhone || '+7 (777) 902-33-99';
         }
 
         function getEffectiveCupName() {
-            const giftName = document.getElementById('gift-name-input');
             const giftToggle = document.getElementById('gift-phone-toggle');
-            if (giftToggle && giftToggle.checked && giftName && giftName.value.trim().length >= 2) {
+            const giftName = document.getElementById('gift-name-input');
+            if (giftToggle && giftToggle.checked && giftName && giftName.value.trim()) {
                 return giftName.value.trim();
             }
-            if (state.cupName && state.cupName.length >= 2) return state.cupName;
+            if (state.cupName && state.cupName.trim()) return state.cupName.trim();
             if (state.clientUser && state.clientUser.name) return state.clientUser.name;
             return 'Гость';
         }
 
-        // 13. BARISTA TERMINAL & WHATSAPP ORDER DISPATCH
+        // 13. BARISTA TERMINAL & STRICT 2FA STAFF AUTHENTICATION
         function openStaffModal() {
+            clearStaffAuthError();
             document.getElementById('staff-modal').classList.remove('hidden');
             if (state.staffUser) {
                 document.getElementById('staff-auth-gate').classList.add('hidden');
                 document.getElementById('staff-dashboard-view').classList.remove('hidden');
                 renderStaffDashboard();
             } else {
+                resetStaff2faToStep1();
                 document.getElementById('staff-auth-gate').classList.remove('hidden');
                 document.getElementById('staff-dashboard-view').classList.add('hidden');
             }
@@ -3352,19 +3415,194 @@
             document.getElementById('staff-modal').classList.add('hidden');
         }
 
-        function loginStaff() {
+        function triggerStaffInputError(elId, message) {
+            const el = document.getElementById(elId);
+            if (el) {
+                el.classList.remove('shake-error');
+                void el.offsetWidth;
+                el.classList.add('shake-error', 'ring-2', 'ring-red-500');
+                setTimeout(() => el.classList.remove('ring-2', 'ring-red-500'), 2000);
+                el.focus();
+            }
+            const errBox = document.getElementById('staff-auth-error-msg');
+            if (errBox) {
+                errBox.textContent = message;
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function clearStaffAuthError() {
+            const errBox = document.getElementById('staff-auth-error-msg');
+            if (errBox) errBox.classList.add('hidden');
+        }
+
+        function resetStaff2faToStep1() {
+            state.staffAuthStep = 'step1';
+            if (state.staff2faSession.timerId) clearInterval(state.staff2faSession.timerId);
+            state.staff2faSession.code = null;
+            const box = document.getElementById('staff-2fa-box');
+            if (box) box.classList.add('hidden');
+            const btn = document.getElementById('staff-auth-submit-btn');
+            if (btn) btn.textContent = 'Шаг 1 • Запросить 6-значный 2FA-код смены';
+        }
+
+        function startStaff2faCountdown() {
+            if (state.staff2faSession.timerId) clearInterval(state.staff2faSession.timerId);
+            const updateUi = () => {
+                const badge = document.getElementById('staff-2fa-timer-badge');
+                if (!badge) return;
+                const secLeft = Math.max(0, Math.ceil((state.staff2faSession.expiresAt - Date.now()) / 1000));
+                if (secLeft > 0) {
+                    badge.textContent = `${secLeft} сек`;
+                } else {
+                    badge.textContent = 'Истёк';
+                    clearInterval(state.staff2faSession.timerId);
+                }
+            };
+            updateUi();
+            state.staff2faSession.timerId = setInterval(updateUi, 1000);
+        }
+
+        function issueStaff2faCode(role, name, phone) {
+            if (Date.now() < state.staff2faSession.lockedUntil) {
+                const waitSec = Math.ceil((state.staff2faSession.lockedUntil - Date.now()) / 1000);
+                triggerStaffInputError('staff-2fa-code-input', `Терминал временно заблокирован. Подождите ${waitSec} сек.`);
+                return;
+            }
+
+            const rand = new Uint32Array(1);
+            window.crypto.getRandomValues(rand);
+            const code6 = String(100000 + (rand[0] % 900000));
+
+            state.staffAuthStep = 'step2_2fa';
+            state.staff2faSession.role = role;
+            state.staff2faSession.name = name;
+            state.staff2faSession.phone = phone;
+            state.staff2faSession.code = code6;
+            state.staff2faSession.expiresAt = Date.now() + 60000;
+            state.staff2faSession.attemptsLeft = 3;
+
+            document.getElementById('staff-2fa-box').classList.remove('hidden');
+            const codeInp = document.getElementById('staff-2fa-code-input');
+            if (codeInp) {
+                codeInp.value = '';
+                codeInp.focus();
+            }
+            document.getElementById('staff-2fa-attempts-label').textContent = 'Попыток: 3';
+            document.getElementById('staff-auth-submit-btn').textContent = 'Шаг 2 • Подтвердить 2FA-код и открыть терминал';
+            startStaff2faCountdown();
+
+            showSystemToast(
+                phone,
+                '2FA-КОД БАРИСТА COFFEE PEOPLE',
+                `Сотрудник: ${name}. Одноразовый код смены: ${code6} (действует 60 сек). Нажмите, чтобы подставить.`,
+                () => {
+                    const inp = document.getElementById('staff-2fa-code-input');
+                    if (inp) {
+                        inp.value = code6;
+                        clearStaffAuthError();
+                    }
+                }
+            );
+        }
+
+        function sendStaff2faViaWhatsApp() {
+            if (!state.staff2faSession.code || !state.staff2faSession.phone) return;
+            const digits = state.staff2faSession.phone.replace(/\D/g, '');
+            const msg = `COFFEE PEOPLE BARISTA 2FA: Ваш одноразовый 6-значный код открытия смены: *${state.staff2faSession.code}* (действует 60 сек).`;
+            window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function resendStaff2faCode() {
             const role = document.getElementById('staff-role-select').value;
-            const name = document.getElementById('staff-name-input').value.trim() || 'Бариста';
+            const name = document.getElementById('staff-name-input').value.trim();
             const phone = document.getElementById('staff-phone-input').value.trim();
-            state.staffUser = { role, name, phone };
-            document.getElementById('staff-duty-subtitle').textContent = `Смена: ${role} ${name} (${phone})`;
+            if (!name || !phone) return;
+            issueStaff2faCode(role, name, phone);
+        }
+
+        function handleStaffAuthStep() {
+            clearStaffAuthError();
+            const role = document.getElementById('staff-role-select').value;
+            const name = document.getElementById('staff-name-input').value.trim();
+            const phone = document.getElementById('staff-phone-input').value.trim();
+            const masterKey = document.getElementById('staff-master-key-input').value.trim();
+
+            if (name.length < 2) {
+                triggerStaffInputError('staff-name-input', 'Укажите имя сотрудника смены (минимум 2 буквы).');
+                return;
+            }
+
+            const phoneCheck = validateKzMobilePhone(phone);
+            if (!phoneCheck.valid) {
+                triggerStaffInputError('staff-phone-input', phoneCheck.reason);
+                return;
+            }
+
+            if (masterKey !== BRANCH_MASTER_KEY) {
+                triggerStaffInputError('staff-master-key-input', 'Неверный корпоративный Мастер-ключ филиала. Доступ запрещён.');
+                return;
+            }
+
+            // Ensure phone is in staff whitelist (or auto-register if valid master key is provided by manager)
+            if (!state.staffWhitelist.includes(phone)) {
+                if (role === 'Управляющий') {
+                    state.staffWhitelist.push(phone);
+                    try { localStorage.setItem(STORAGE_KEY_STAFF_WHITELIST, JSON.stringify(state.staffWhitelist)); } catch (e) {}
+                } else {
+                    triggerStaffInputError('staff-phone-input', `Номер ${phone} не числится в штатном расписании бариста. Обратитесь к управляющему смены.`);
+                    return;
+                }
+            }
+
+            if (state.staffAuthStep === 'step1') {
+                issueStaff2faCode(role, name, phone);
+                return;
+            }
+
+            // Step 2: Verify 6-digit 2FA OTP
+            if (Date.now() < state.staff2faSession.lockedUntil) {
+                const waitSec = Math.ceil((state.staff2faSession.lockedUntil - Date.now()) / 1000);
+                triggerStaffInputError('staff-2fa-code-input', `Ввод заблокирован на ${waitSec} сек.`);
+                return;
+            }
+
+            if (Date.now() > state.staff2faSession.expiresAt) {
+                triggerStaffInputError('staff-2fa-code-input', 'Срок действия 2FA-кода истёк. Запросите новый код.');
+                return;
+            }
+
+            const enteredCode = (document.getElementById('staff-2fa-code-input').value || '').trim();
+            if (enteredCode !== state.staff2faSession.code) {
+                state.staff2faSession.attemptsLeft -= 1;
+                document.getElementById('staff-2fa-attempts-label').textContent = `Попыток: ${Math.max(0, state.staff2faSession.attemptsLeft)}`;
+                if (state.staff2faSession.attemptsLeft <= 0) {
+                    state.staff2faSession.lockedUntil = Date.now() + 30000;
+                    state.staff2faSession.code = null;
+                    triggerStaffInputError('staff-2fa-code-input', '3 неверные попытки. Терминал заблокирован на 30 секунд.');
+                    return;
+                }
+                triggerStaffInputError('staff-2fa-code-input', `Неверный 6-значный 2FA-код. Осталось попыток: ${state.staff2faSession.attemptsLeft}.`);
+                return;
+            }
+
+            if (state.staff2faSession.timerId) clearInterval(state.staff2faSession.timerId);
+            state.staffUser = { role, name, phone, verified2FA: true };
+            state.managerPanelUnlocked = (role === 'Управляющий');
+            resetStaff2faToStep1();
+
+            document.getElementById('staff-master-key-input').value = '';
+            document.getElementById('staff-duty-subtitle').textContent = `Смена 2FA: ${role} ${name} (${phone})`;
             document.getElementById('staff-auth-gate').classList.add('hidden');
             document.getElementById('staff-dashboard-view').classList.remove('hidden');
-            renderStaffDashboard();
+            switchStaffTab('orders');
+            showSystemToast(phone, 'Смена бариста открыта (2FA)', `${role} ${name} авторизован в терминале COFFEE PEOPLE.`);
         }
 
         function logoutStaff() {
             state.staffUser = null;
+            state.managerPanelUnlocked = false;
+            resetStaff2faToStep1();
             openStaffModal();
         }
 
@@ -3374,12 +3612,13 @@
                 const btn = document.getElementById(`stab-${t}`);
                 if (!btn) return;
                 if (t === tab) {
-                    btn.className = 'px-4 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink';
+                    btn.className = 'px-4 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink flex items-center gap-1.5';
                 } else {
-                    btn.className = 'px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink';
+                    btn.className = 'px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1.5';
                 }
             });
             renderStaffDashboard();
+            lucide.createIcons();
         }
 
         function updateStaffCounters() {
@@ -3389,32 +3628,122 @@
             if (oEl) oEl.textContent = activeOrders;
         }
 
+        function unlockManagerEngineeringPanel() {
+            const pinEl = document.getElementById('manager-admin-pin-inp');
+            const val = pinEl ? pinEl.value.trim() : '';
+            if (val !== MANAGER_ADMIN_PIN) {
+                showSystemToast('Безопасность', 'Отказ в доступе', 'Неверный PIN-код управляющего филиалом.');
+                return;
+            }
+            state.managerPanelUnlocked = true;
+            renderStaffDashboard();
+            lucide.createIcons();
+        }
+
+        function addStaffPhoneToWhitelist() {
+            const inp = document.getElementById('new-staff-whitelist-phone');
+            if (!inp) return;
+            const phone = inp.value.trim();
+            const check = validateKzMobilePhone(phone);
+            if (!check.valid) {
+                showSystemToast('Штат сотрудников', 'Ошибка номера', check.reason);
+                return;
+            }
+            if (!state.staffWhitelist.includes(phone)) {
+                state.staffWhitelist.push(phone);
+                try { localStorage.setItem(STORAGE_KEY_STAFF_WHITELIST, JSON.stringify(state.staffWhitelist)); } catch (e) {}
+            }
+            inp.value = '';
+            renderStaffDashboard();
+            showSystemToast(phone, 'Штат обновлён', `Номер ${phone} добавлен в белый список бариста.`);
+        }
+
+        function removeStaffPhoneFromWhitelist(idx) {
+            if (state.staffWhitelist.length <= 1) return;
+            const removed = state.staffWhitelist.splice(idx, 1);
+            try { localStorage.setItem(STORAGE_KEY_STAFF_WHITELIST, JSON.stringify(state.staffWhitelist)); } catch (e) {}
+            renderStaffDashboard();
+            showSystemToast('Штат сотрудников', 'Номер удалён', `Доступ для ${removed[0]} отозван.`);
+        }
+
         function renderStaffDashboard() {
             updateStaffCounters();
             const body = document.getElementById('staff-tab-body');
 
             if (state.activeStaffTab === 'cloud') {
+                if (!state.managerPanelUnlocked) {
+                    body.innerHTML = `
+                        <div class="bg-white rounded-2xl p-6 border border-cp-border max-w-md mx-auto text-center space-y-4">
+                            <div class="w-11 h-11 rounded-2xl bg-cp-blueSoft text-cp-blue flex items-center justify-center mx-auto">
+                                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-display font-bold text-sm uppercase text-cp-ink">Раздел управляющего кофейней</h4>
+                                <p class="text-xs text-cp-muted mt-1 leading-relaxed">
+                                    Управление списком допущенных телефонов бариста и инженерные настройки облачной синхронизации защищены PIN-кодом управляющего.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input id="manager-admin-pin-inp" type="password" inputmode="numeric" maxlength="4" placeholder="PIN управляющего" class="flex-1 bg-cp-pill rounded-xl px-4 py-3 text-center font-mono text-sm font-bold tracking-widest focus:outline-none">
+                                <button onclick="unlockManagerEngineeringPanel()" class="bg-cp-ink text-white text-xs font-bold px-5 py-3 rounded-xl">
+                                    Разблокировать
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
                 body.innerHTML = `
-                    <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-4">
-                        <div>
-                            <h4 class="font-display font-bold text-sm uppercase text-cp-ink">Облачная база Firebase Firestore & SMS-шлюз</h4>
-                            <p class="text-xs text-cp-muted mt-1 leading-relaxed">
-                                Укажите ID вашего проекта Firebase (например, <b>coffee-people-app</b>), чтобы заказы и аккаунты синхронизировались через облако Google Firestore между всеми телефонами.
+                    <div class="space-y-4">
+                        <!-- Whitelist Management Card -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Белый список номеров бариста (Допуск к 2FA)</h4>
+                                <span class="font-mono text-[10px] font-bold bg-cp-blueSoft text-cp-blue px-2.5 py-0.5 rounded-full">Мастер-ключ: ${BRANCH_MASTER_KEY}</span>
+                            </div>
+                            <p class="text-xs text-cp-muted leading-relaxed">
+                                Только сотрудники из этого списка могут запросить 2FA-код и открыть терминал заказов.
                             </p>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[11px] font-bold uppercase text-cp-muted mb-1">Firebase Project ID</label>
-                                <input id="staff-firebase-id-inp" type="text" value="${state.firebaseProjectId}" placeholder="coffee-people-app" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                            <div class="space-y-1.5">
+                                ${state.staffWhitelist.map((ph, i) => `
+                                    <div class="flex items-center justify-between bg-cp-bg px-3.5 py-2 rounded-xl border border-cp-border text-xs">
+                                        <span class="font-mono font-bold text-cp-ink">${ph}</span>
+                                        <button onclick="removeStaffPhoneFromWhitelist(${i})" class="text-[11px] font-bold text-red-700 hover:underline">Удалить</button>
+                                    </div>
+                                `).join('')}
                             </div>
-                            <div>
-                                <label class="block text-[11px] font-bold uppercase text-cp-muted mb-1">API-ключ Mobizon.kz (необязательно)</label>
-                                <input id="staff-mobizon-key-inp" type="password" value="${state.mobizonApiKey}" placeholder="Для прямой отправки сотовых SMS" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                            <div class="flex gap-2 pt-1">
+                                <input id="new-staff-whitelist-phone" type="tel" oninput="formatKzPhone(this)" placeholder="+7 (7XX) XXX-XX-XX" class="flex-1 bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                <button onclick="addStaffPhoneToWhitelist()" class="bg-cp-ink text-white text-xs font-bold px-4 py-2.5 rounded-xl shrink-0">
+                                    + Добавить бариста
+                                </button>
                             </div>
                         </div>
-                        <button onclick="saveCloudSettings()" class="bg-cp-blue text-white text-xs font-bold px-5 py-3 rounded-xl">
-                            Сохранить настройки синхронизации
-                        </button>
+
+                        <!-- Cloud Database Sync Card -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Облачная синхронизация Google Firebase</h4>
+                                <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">АВТО-СИНХРОНИЗАЦИЯ</span>
+                            </div>
+                            <p class="text-xs text-cp-muted leading-relaxed">
+                                ID проекта <b>coffee-people-app</b> уже прописан автоматически — все заказы и бонусы синхронизируются в фоне. Менять эти поля бариста не требуется.
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Firebase Project ID</label>
+                                    <input id="staff-firebase-id-inp" type="text" value="${state.firebaseProjectId}" placeholder="coffee-people-app" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">API-ключ Mobizon.kz (опционально)</label>
+                                    <input id="staff-mobizon-key-inp" type="password" value="${state.mobizonApiKey}" placeholder="Необязательно (работает WhatsApp)" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                            </div>
+                            <button onclick="saveCloudSettings()" class="bg-cp-blue text-white text-xs font-bold px-5 py-2.5 rounded-xl">
+                                Сохранить конфигурацию
+                            </button>
+                        </div>
                     </div>
                 `;
                 return;
