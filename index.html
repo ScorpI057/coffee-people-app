@@ -474,10 +474,10 @@
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">К какому времени</label>
                                         <select id="quick-pre-time" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none">
-                                            <option value="Через 10 минут">Через 10 минут</option>
-                                            <option value="Через 15 минут" selected>Через 15 минут</option>
-                                            <option value="Через 25 минут">Через 25 минут</option>
-                                            <option value="Через 40 минут">Через 40 минут</option>
+                                            <option value="Через 10 мин">Через 10 мин</option>
+                                            <option value="Через 15 мин" selected>Через 15 мин</option>
+                                            <option value="Через 25 мин">Через 25 мин</option>
+                                            <option value="Через 40 мин">Через 40 мин</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1967,8 +1967,12 @@
             lastOrderSummaryText: '',
 
             // Cloud & Auth State
-            firebaseProjectId: localStorage.getItem('cp_firebase_project_id') || 'coffee-people-app',
-            mobizonApiKey: localStorage.getItem('cp_mobizon_api_key') || '',
+            firebaseProjectId: 'coffee-people-app',
+            firebaseApiKey: '',
+            firebaseAppId: '',
+            firebaseSenderId: '',
+            firebaseConnected: false,
+            mobizonApiKey: '',
             authModeTab: 'register', // 'register' | 'pinlogin'
             clientUser: null, // { name, phone, pin, bonuses, orders }
             authStep: 'form', // 'form' | 'otp'
@@ -2012,6 +2016,14 @@
             modalTemp: 'Стандарт 60–65°C',
             modalExtras: []
         };
+
+        try {
+            state.firebaseProjectId = localStorage.getItem('cp_firebase_project_id') || 'coffee-people-app';
+            state.firebaseApiKey = localStorage.getItem('cp_fb_apiKey') || '';
+            state.firebaseAppId = localStorage.getItem('cp_fb_appId') || '';
+            state.firebaseSenderId = localStorage.getItem('cp_fb_messagingSenderId') || '';
+            state.mobizonApiKey = localStorage.getItem('cp_mobizon_api_key') || '';
+        } catch (e) {}
 
         // Curated Sommelier Combos (Zero Emojis)
         const MOOD_COMBOS = {
@@ -2171,6 +2183,8 @@
         }
 
         // 5. APP INITIALIZATION & PRELOADER
+        let preloaderTimerId = null;
+
         window.addEventListener('DOMContentLoaded', () => {
             restoreSessionFromStorage();
             runPreloader();
@@ -2182,7 +2196,7 @@
             updateCartViews();
             updateStaffCounters();
             setupScrollListeners();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         });
 
         function runPreloader() {
@@ -2190,13 +2204,14 @@
             const pctEl = document.getElementById('preloader-percent');
             const statusEl = document.getElementById('preloader-status-text');
             let pct = 15;
-            const timer = setInterval(() => {
+            if (preloaderTimerId) clearInterval(preloaderTimerId);
+            preloaderTimerId = setInterval(() => {
                 pct += Math.floor(Math.random() * 24) + 14;
                 if (pct >= 100) {
                     pct = 100;
                     if (barEl) barEl.style.width = '100%';
                     if (pctEl) pctEl.textContent = '100%';
-                    clearInterval(timer);
+                    clearInterval(preloaderTimerId);
                     setTimeout(dismissPreloader, 220);
                     return;
                 }
@@ -2209,6 +2224,7 @@
         }
 
         function dismissPreloader() {
+            if (preloaderTimerId) clearInterval(preloaderTimerId);
             const pre = document.getElementById('app-preloader');
             if (!pre) return;
             pre.classList.add('opacity-0', 'pointer-events-none');
@@ -2298,6 +2314,48 @@
             if (!vesselStr) return 'С собой';
             return vesselStr.includes('керамике') || vesselStr.includes('В зале') ? 'В керамике' : 'С собой';
         }
+
+        window.renderBoard = function(cloudOrders) {
+            if (Array.isArray(cloudOrders)) {
+                const prevReadyIds = new Set(
+                    state.staffOrders.filter(o => o.status === 'ready').map(o => o.id)
+                );
+                state.staffOrders = cloudOrders.map(d => {
+                    const normalizedStatus = (d.status === 'preparing') ? 'cooking' : (d.status || 'cooking');
+                    return {
+                        ...d,
+                        firestoreId: d.firestoreId || d.id,
+                        id: d.orderNumber || d.displayId || (String(d.id).startsWith('#') ? d.id : '#' + String(d.id).slice(0, 4).toUpperCase()),
+                        status: normalizedStatus,
+                        items: Array.isArray(d.items) ? d.items : [],
+                        shortItems: Array.isArray(d.shortItems) ? d.shortItems : [],
+                        total: Number(d.total) || 0,
+                        clientName: d.clientName || 'Гость',
+                        clientPhone: d.clientPhone || '+7',
+                        branch: d.branch || state.branch,
+                        arrivalInfo: d.arrivalInfo || 'Сразу ~7 мин',
+                        vessel: d.vessel || 'С собой (В стаканчике)'
+                    };
+                });
+                state.staffOrders.forEach(ord => {
+                    if (ord.status === 'ready' && !prevReadyIds.has(ord.id) && isOwnOrder(ord)) {
+                        showSystemToast(
+                            ord.clientPhone,
+                            `ГОТОВО У СТОЙКИ • ${ord.id}`,
+                            `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})!`
+                        );
+                    }
+                });
+                try {
+                    localStorage.setItem(STORAGE_KEY_REAL_ORDERS, JSON.stringify(state.staffOrders));
+                } catch (e) {}
+            }
+            renderLivePickupBoard();
+            updateStaffCounters();
+            if (!document.getElementById('staff-modal').classList.contains('hidden') && state.staffUser) {
+                renderStaffDashboard();
+            }
+        };
 
         function renderLivePickupBoard() {
             const cookingList = document.getElementById('board-cooking-list');
@@ -2410,7 +2468,7 @@
                 : 'ГОТОВИТСЯ БАРИСТА НА БАРЕ';
             document.getElementById('live-order-phone-info').textContent = `${statusText} • ${ord.arrivalInfo} • ${ord.vessel}`;
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function markOrderPickedUpByGuest(orderId) {
@@ -2418,6 +2476,9 @@
             if (idx === -1) return;
             const ord = state.staffOrders[idx];
             ord.status = 'done';
+            if (typeof window.updateOrderStatus === 'function') {
+                window.updateOrderStatus(ord.firestoreId || ord.id, 'done');
+            }
             broadcastRealtimeSync();
             updateStaffCounters();
             if (!document.getElementById('staff-modal').classList.contains('hidden') && state.staffUser) {
@@ -2483,7 +2544,7 @@
                 </button>
             `;
             modal.classList.remove('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function closeStoryViewer() {
@@ -2536,7 +2597,7 @@
             root.innerHTML = html;
             if (countVisible === 0) emptyBox.classList.remove('hidden');
             else emptyBox.classList.add('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderEditorialCard(item) {
@@ -2719,7 +2780,7 @@
             renderModalModifiers(item);
             updateModalPriceBtn();
             document.getElementById('product-modal').classList.remove('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderModalModifiers(item) {
@@ -3181,7 +3242,7 @@
                 document.getElementById('client-auth-form-view').classList.remove('hidden');
                 document.getElementById('client-profile-view').classList.add('hidden');
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function closeClientAuthModal() {
@@ -3408,7 +3469,7 @@
                 document.getElementById('staff-auth-gate').classList.remove('hidden');
                 document.getElementById('staff-dashboard-view').classList.add('hidden');
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function closeStaffModal() {
@@ -3618,7 +3679,7 @@
                 }
             });
             renderStaffDashboard();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function updateStaffCounters() {
@@ -3637,7 +3698,7 @@
             }
             state.managerPanelUnlocked = true;
             renderStaffDashboard();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function addStaffPhoneToWhitelist() {
@@ -3724,11 +3785,13 @@
                         <!-- Cloud Database Sync Card -->
                         <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
                             <div class="flex items-center justify-between">
-                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Облачная синхронизация Google Firebase</h4>
-                                <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">АВТО-СИНХРОНИЗАЦИЯ</span>
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Облачная синхронизация Google Firebase (SDK v11.0.2)</h4>
+                                <span class="font-mono text-[10px] font-bold ${state.firebaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-cp-blueSoft text-cp-blue'} px-2.5 py-0.5 rounded-full">
+                                    ${state.firebaseConnected ? '[CP] FIREBASE ПОДКЛЮЧЁН' : 'ГОТОВ К ПОДКЛЮЧЕНИЮ'}
+                                </span>
                             </div>
                             <p class="text-xs text-cp-muted leading-relaxed">
-                                ID проекта <b>coffee-people-app</b> уже прописан автоматически — все заказы и бонусы синхронизируются в фоне. Менять эти поля бариста не требуется.
+                                Модуль <b>firebase-sync.js</b> (<span class="font-mono">sendOrder</span>, <span class="font-mono">onSnapshot</span>, <span class="font-mono">renderBoard</span>, <span class="font-mono">markReady</span>) встроен в приложение. Вставьте ключи из консоли Firebase (<span class="font-mono">Project Settings → Web App</span>) для мгновенной синхронизации между Telegram и экраном бариста.
                             </p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
@@ -3736,13 +3799,26 @@
                                     <input id="staff-firebase-id-inp" type="text" value="${state.firebaseProjectId}" placeholder="coffee-people-app" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                                 <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Firebase Web apiKey</label>
+                                    <input id="staff-firebase-apikey-inp" type="text" value="${state.firebaseApiKey || ''}" placeholder="AIzaSy..." class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Firebase appId</label>
+                                    <input id="staff-firebase-appid-inp" type="text" value="${state.firebaseAppId || ''}" placeholder="1:123456789:web:abcdef" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
                                     <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">API-ключ Mobizon.kz (опционально)</label>
                                     <input id="staff-mobizon-key-inp" type="password" value="${state.mobizonApiKey}" placeholder="Необязательно (работает WhatsApp)" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                             </div>
-                            <button onclick="saveCloudSettings()" class="bg-cp-blue text-white text-xs font-bold px-5 py-2.5 rounded-xl">
-                                Сохранить конфигурацию
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button onclick="saveCloudSettings()" class="bg-cp-blue text-white text-xs font-bold px-5 py-2.5 rounded-xl">
+                                    Сохранить и переподключить Firebase
+                                </button>
+                                <button onclick="copyFirestoreRules()" class="bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-4 py-2.5 rounded-xl">
+                                    Скопировать Firestore Rules (Шаг 7)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3822,22 +3898,59 @@
 
         function saveCloudSettings() {
             const fbInp = document.getElementById('staff-firebase-id-inp');
+            const apiInp = document.getElementById('staff-firebase-apikey-inp');
+            const appInp = document.getElementById('staff-firebase-appid-inp');
             const mbInp = document.getElementById('staff-mobizon-key-inp');
             if (fbInp) {
-                state.firebaseProjectId = fbInp.value.trim();
+                state.firebaseProjectId = fbInp.value.trim() || 'coffee-people-app';
                 try { localStorage.setItem('cp_firebase_project_id', state.firebaseProjectId); } catch (e) {}
+            }
+            if (apiInp) {
+                state.firebaseApiKey = apiInp.value.trim();
+                try { localStorage.setItem('cp_fb_apiKey', state.firebaseApiKey); } catch (e) {}
+            }
+            if (appInp) {
+                state.firebaseAppId = appInp.value.trim();
+                try { localStorage.setItem('cp_fb_appId', state.firebaseAppId); } catch (e) {}
             }
             if (mbInp) {
                 state.mobizonApiKey = mbInp.value.trim();
                 try { localStorage.setItem('cp_mobizon_api_key', state.mobizonApiKey); } catch (e) {}
             }
+            if (typeof window.initCoffeePeopleFirebase === 'function') {
+                window.initCoffeePeopleFirebase();
+            }
+            renderStaffDashboard();
             showSystemToast('COFFEE PEOPLE CLOUD', 'Настройки сохранены', `Firebase Project ID: ${state.firebaseProjectId || 'Локальный режим'}`);
+        }
+
+        function copyFirestoreRules() {
+            const rulesText = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /orders/{orderId} {\n      allow read, create: if true;\n      allow update, delete: if true;\n    }\n    match /coffee_people_orders/{orderId} {\n      allow read, write: if true;\n    }\n    match /coffee_people_users/{userId} {\n      allow read, write: if true;\n    }\n  }\n}`;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(rulesText);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = rulesText;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    ta.remove();
+                }
+            } catch (e) {}
+            showSystemToast('Firestore Rules', 'Правила скопированы', 'Вставьте скопированные правила во вкладку Firestore Database → Rules и нажмите Publish.');
         }
 
         function advanceOrderStatus(idx, nextStatus) {
             const ord = state.staffOrders[idx];
             if (!ord) return;
             ord.status = nextStatus;
+            const targetDocId = ord.firestoreId || ord.id;
+            if (nextStatus === 'ready' && typeof window.markReady === 'function') {
+                window.markReady(targetDocId);
+            } else if (typeof window.updateOrderStatus === 'function') {
+                window.updateOrderStatus(targetDocId, nextStatus === 'cooking' ? 'preparing' : nextStatus);
+            }
             renderStaffDashboard();
             broadcastRealtimeSync();
             syncWithFirebaseCloud('coffee_people_orders', ord.id.replace('#', 'ORD_'), ord);
@@ -3858,7 +3971,7 @@
             document.getElementById('order-config-modal').classList.remove('hidden');
             const nameInp = document.getElementById('modal-cup-name-input');
             if (nameInp) nameInp.value = getEffectiveCupName() === 'Гость' ? '' : getEffectiveCupName();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function closeOrderConfigModal() {
@@ -4015,7 +4128,7 @@
 
             updateCartViews();
             document.getElementById('checkout-modal').classList.remove('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function closeCheckoutModal() {
@@ -4142,6 +4255,12 @@
                     localStorage.setItem(STORAGE_KEY_SESSION_ORDERS, JSON.stringify(state.sessionOrderIds));
                 } catch (e) {}
             }
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({
+                    ...newOrderObj,
+                    orderNumber: orderId
+                });
+            }
             syncWithFirebaseCloud('coffee_people_orders', orderId.replace('#', 'ORD_'), newOrderObj);
 
             const earnedCashback = Math.max(25, Math.round(subtotal * 0.05));
@@ -4179,7 +4298,7 @@
                 `Заказ ${orderId} выведен на табло`,
                 `Имя на стаканчике: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ кэшбэка.`
             );
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function sendReceiptToRealWhatsApp() {
@@ -4255,6 +4374,144 @@
                 });
             });
         }
+    </script>
+
+    <!-- ==========================================
+         FIREBASE REALTIME SYNC MODULE (firebase-sync.js)
+         ========================================== -->
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            setDoc,
+            onSnapshot,
+            query,
+            orderBy,
+            updateDoc,
+            doc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        let db = null;
+        let unsubscribeOrders = null;
+
+        function buildFirebaseConfig() {
+            let savedProjectId = "coffee-people-app";
+            let savedApiKey = "";
+            let savedAppId = "";
+            let savedSenderId = "";
+            try {
+                savedProjectId = localStorage.getItem("cp_firebase_project_id") || "coffee-people-app";
+                savedApiKey = localStorage.getItem("cp_fb_apiKey") || "";
+                savedAppId = localStorage.getItem("cp_fb_appId") || "";
+                savedSenderId = localStorage.getItem("cp_fb_messagingSenderId") || "";
+            } catch (e) {}
+
+            return {
+                apiKey: savedApiKey || "AIzaSyDemoCoffeePeoplePetropavlKey2026",
+                authDomain: `${savedProjectId}.firebaseapp.com`,
+                projectId: savedProjectId,
+                storageBucket: `${savedProjectId}.firebasestorage.app`,
+                messagingSenderId: savedSenderId || "102938475610",
+                appId: savedAppId || "1:102938475610:web:c0ffeepe0ple2026"
+            };
+        }
+
+        // 1) Гость отправляет заказ (кнопка «Отправить заказ бариста»)
+        window.sendOrder = async (order) => {
+            if (!db) return null;
+            try {
+                const cleanDocId = String(order.orderNumber || order.id || Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
+                const payload = {
+                    ...order,
+                    orderNumber: order.orderNumber || order.id || `#${cleanDocId}`,
+                    status: "preparing",
+                    createdAt: serverTimestamp()
+                };
+                if (cleanDocId) {
+                    await setDoc(doc(db, "orders", cleanDocId), payload, { merge: true });
+                    return cleanDocId;
+                } else {
+                    const ref = await addDoc(collection(db, "orders"), payload);
+                    return ref.id;
+                }
+            } catch (err) {
+                console.warn("[CP] Запись в Firestore отложена (проверьте firebaseConfig / Rules):", err.message);
+                return null;
+            }
+        };
+
+        // 3) Бариста отмечает заказ готовым (кнопка «Готов»)
+        window.markReady = async (id) => {
+            if (!db || !id) return;
+            try {
+                const cleanDocId = String(id).replace(/^#/, "");
+                await updateDoc(doc(db, "orders", cleanDocId), {
+                    status: "ready",
+                    updatedAt: serverTimestamp()
+                });
+            } catch (err) {
+                console.warn("[CP] Не удалось обновить статус ready в Firestore:", err.message);
+            }
+        };
+
+        // Дополнительный хелпер смены статуса (cooking / ready / done)
+        window.updateOrderStatus = async (id, status) => {
+            if (!db || !id) return;
+            try {
+                const cleanDocId = String(id).replace(/^#/, "");
+                await updateDoc(doc(db, "orders", cleanDocId), {
+                    status: status,
+                    updatedAt: serverTimestamp()
+                });
+            } catch (err) {
+                console.warn("[CP] Не удалось обновить статус заказа в Firestore:", err.message);
+            }
+        };
+
+        // 2) Инициализация и подписка onSnapshot (табло и терминал бариста обновляются сами)
+        window.initCoffeePeopleFirebase = () => {
+            try {
+                const firebaseConfig = buildFirebaseConfig();
+                const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+                db = getFirestore(app);
+
+                if (unsubscribeOrders) {
+                    try { unsubscribeOrders(); } catch (e) {}
+                }
+
+                const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+                unsubscribeOrders = onSnapshot(
+                    ordersQuery,
+                    (snap) => {
+                        if (typeof state !== "undefined") state.firebaseConnected = true;
+                        const orders = snap.docs.map(d => {
+                            const data = d.data() || {};
+                            return {
+                                ...data,
+                                firestoreId: d.id,
+                                id: data.orderNumber || data.id || `#${d.id}`
+                            };
+                        });
+                        if (orders.length > 0 || (typeof state !== "undefined" && state.firebaseApiKey)) {
+                            window.renderBoard?.(orders);
+                        }
+                    },
+                    (err) => {
+                        console.warn("[CP] Ожидание настройки ключей Firestore / правил доступа:", err.message);
+                    }
+                );
+
+                if (typeof state !== "undefined") state.firebaseConnected = true;
+                console.log("[CP] Firebase подключён:", firebaseConfig.projectId);
+            } catch (err) {
+                console.warn("[CP] Ошибка инициализации Firebase:", err.message);
+            }
+        };
+
+        window.initCoffeePeopleFirebase();
     </script>
 </body>
 </html>
