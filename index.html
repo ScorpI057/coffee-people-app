@@ -1088,25 +1088,55 @@
                     </label>
                 </div>
 
-                <!-- Payment Method -->
+                <!-- Payment Method (Multi-Bank Kazakhstan) -->
                 <div class="bg-white rounded-2xl p-4 border border-cp-border space-y-2">
-                    <label class="block text-xs font-bold uppercase text-cp-muted mb-1">Способ оплаты</label>
-                    <label onclick="setPaymentMethod('kaspi')" id="pay-opt-kaspi" class="flex items-center justify-between p-3 rounded-xl border-2 border-cp-ink bg-cp-bg/40 cursor-pointer">
+                    <label class="block text-xs font-bold uppercase text-cp-muted mb-1">Выберите банк для оплаты</label>
+                    <label onclick="setPaymentMethod('kaspi')" id="pay-opt-kaspi" class="flex items-center justify-between p-3 rounded-xl border-2 border-cp-ink bg-cp-bg/40 cursor-pointer transition">
                         <div class="flex items-center gap-3">
-                            <span class="w-9 h-9 rounded-lg bg-cp-kaspi text-white font-mono font-bold text-[10px] flex items-center justify-center">KASPI</span>
+                            <span class="w-9 h-9 rounded-lg bg-cp-kaspi text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0">KASPI</span>
                             <div>
-                                <div class="text-xs font-bold">Kaspi Pay / Удаленный счет</div>
-                                <div class="text-[10px] text-cp-muted">Быстрая оплата до прихода в кофейню</div>
+                                <div class="text-xs font-bold">Kaspi Gold / Kaspi QR</div>
+                                <div class="text-[10px] text-cp-muted">Сканирование QR или перевод по номеру</div>
                             </div>
                         </div>
                         <input type="radio" name="pay_m" checked class="accent-cp-ink">
                     </label>
-                    <label onclick="setPaymentMethod('card')" id="pay-opt-card" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer">
+                    <label onclick="setPaymentMethod('halyk')" id="pay-opt-halyk" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition">
                         <div class="flex items-center gap-3">
-                            <span class="w-9 h-9 rounded-lg bg-cp-ink text-white flex items-center justify-center"><i data-lucide="credit-card" class="w-4 h-4"></i></span>
+                            <span class="w-9 h-9 rounded-lg bg-[#00805F] text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0">HALYK</span>
                             <div>
-                                <div class="text-xs font-bold">Apple Pay / Картой онлайн</div>
-                                <div class="text-[10px] text-cp-muted">Visa, Mastercard</div>
+                                <div class="text-xs font-bold">Halyk Bank (Homebank)</div>
+                                <div class="text-[10px] text-cp-muted">Оплата по Halyk QR или переводом</div>
+                            </div>
+                        </div>
+                        <input type="radio" name="pay_m" class="accent-cp-ink">
+                    </label>
+                    <label onclick="setPaymentMethod('freedom')" id="pay-opt-freedom" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-emerald-600 text-white font-mono font-bold text-[9px] flex items-center justify-center shrink-0">FREEDOM</span>
+                            <div>
+                                <div class="text-xs font-bold">Freedom Bank (SuperApp)</div>
+                                <div class="text-[10px] text-cp-muted">Freedom QR и карты с кэшбэком</div>
+                            </div>
+                        </div>
+                        <input type="radio" name="pay_m" class="accent-cp-ink">
+                    </label>
+                    <label onclick="setPaymentMethod('bcc')" id="pay-opt-bcc" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-amber-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0">BCC</span>
+                            <div>
+                                <div class="text-xs font-bold">BCC.kz (ЦентрКредит) / #картакарта</div>
+                                <div class="text-[10px] text-cp-muted">BCC QR и мгновенный перевод</div>
+                            </div>
+                        </div>
+                        <input type="radio" name="pay_m" class="accent-cp-ink">
+                    </label>
+                    <label onclick="setPaymentMethod('card')" id="pay-opt-card" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-cp-ink text-white flex items-center justify-center shrink-0"><i data-lucide="credit-card" class="w-4 h-4"></i></span>
+                            <div>
+                                <div class="text-xs font-bold">Apple Pay / Любая карта РК</div>
+                                <div class="text-[10px] text-cp-muted">Мгновенная онлайн-оплата в 1 клик</div>
                             </div>
                         </div>
                         <input type="radio" name="pay_m" class="accent-cp-ink">
@@ -1140,32 +1170,54 @@
         <div onclick="closeKaspiTracker()" class="fixed inset-0 bg-black/65 backdrop-blur-sm"></div>
         <div class="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center pointer-events-none">
             <div class="bg-cp-surface w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl pointer-events-auto p-6 space-y-5 border border-cp-border">
-                <!-- Step 1: Kaspi Payment -->
-                <div id="kaspi-step-box" class="space-y-4 text-center">
-                    <div class="inline-flex items-center gap-2 bg-cp-kaspi text-white px-4 py-1 rounded-full font-mono text-[10px] font-bold uppercase">
-                        <span>KASPI PAY • COFFEE PEOPLE</span>
+                <!-- Step 1: Multi-Bank Payment Terminal (Kaspi / Halyk / Freedom / BCC) -->
+                <div id="kaspi-step-box" class="space-y-3.5 text-center">
+                    <div id="bank-modal-pill" class="inline-flex items-center gap-2 bg-cp-kaspi text-white px-4 py-1 rounded-full font-mono text-[10px] font-bold uppercase transition">
+                        <span id="bank-modal-pill-text">KASPI GOLD • COFFEE PEOPLE</span>
                     </div>
                     <h3 class="font-display font-bold text-lg text-cp-ink uppercase">Оплата предзаказа</h3>
                     <p class="text-xs text-cp-muted">
                         Имя на стаканчике: <b id="kaspi-target-name" class="text-cp-ink">Гость</b> (<span id="kaspi-target-phone" class="font-mono">+7</span>)<br>
                         Списано бонусов: <b id="kaspi-bonus-part" class="font-mono text-emerald-700">0 ₸</b>
                     </p>
-                    <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
-                        <div class="text-xs text-cp-muted">К оплате через Kaspi Gold / Kaspi QR</div>
+
+                    <!-- Quick Bank Switcher Tabs inside Payment Modal -->
+                    <div class="grid grid-cols-4 gap-1.5 bg-cp-pill p-1 rounded-2xl text-[11px] font-bold">
+                        <button type="button" onclick="setPaymentMethod('kaspi')" id="modal-bank-tab-kaspi" class="py-2 rounded-xl bg-cp-kaspi text-white shadow-sm transition">Kaspi</button>
+                        <button type="button" onclick="setPaymentMethod('halyk')" id="modal-bank-tab-halyk" class="py-2 rounded-xl text-cp-ink hover:bg-white/60 transition">Halyk</button>
+                        <button type="button" onclick="setPaymentMethod('freedom')" id="modal-bank-tab-freedom" class="py-2 rounded-xl text-cp-ink hover:bg-white/60 transition">Freedom</button>
+                        <button type="button" onclick="setPaymentMethod('bcc')" id="modal-bank-tab-bcc" class="py-2 rounded-xl text-cp-ink hover:bg-white/60 transition">BCC</button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-4 border border-cp-border space-y-3">
+                        <div class="text-xs font-semibold text-cp-muted" id="bank-modal-subtitle">Отсканируйте QR камерой или переведите по номеру кассы</div>
                         <div id="kaspi-qr-amount" class="font-mono font-bold text-3xl text-cp-kaspi">0 ₸</div>
+
+                        <!-- Real Scannable QR Code -->
                         <div class="flex items-center justify-center">
-                            <div class="p-2.5 bg-cp-bg rounded-2xl border border-cp-border inline-flex flex-col items-center gap-1.5">
-                                <svg class="w-28 h-28 text-cp-ink" viewBox="0 0 100 100" fill="currentColor">
-                                    <path d="M10 10h26v26H10zM15 15v16h16V15zM20 20h6v6h-6zM64 10h26v26H64zM69 15v16h16V15zM74 20h6v6h-6zM10 64h26v26H10zM15 69v16h16V69zM20 74h6v6h-6zM42 10h6v12h-6zM52 16h6v14h-6zM42 28h8v8h-8zM10 42h14v6H10zM30 42h12v12H30zM48 44h10v6H48zM64 42h12v6H64zM82 42h8v14h-8zM14 52h10v6H14zM42 56h16v8H42zM64 54h12v12H64zM42 70h8v12h-8zM54 68h8v8h-8zM68 72h14v8H68zM84 64h6v16h-6zM44 84h18v6H44zM68 84h22v6H68z"/>
-                                </svg>
-                                <span class="font-mono text-[10px] font-bold text-cp-muted uppercase">COFFEE PEOPLE • KASPI QR</span>
+                            <div class="p-3 bg-white rounded-2xl border-2 border-cp-border shadow-sm inline-flex flex-col items-center gap-1.5">
+                                <img id="payment-real-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=6&data=https%3A%2F%2Fwa.me%2F77779023399" alt="QR для оплаты" class="w-36 h-36 rounded-lg object-contain">
+                                <span id="bank-qr-caption" class="font-mono text-[10px] font-bold text-cp-ink uppercase tracking-wider">СКАНИРУЕМЫЙ QR • COFFEE PEOPLE</span>
                             </div>
                         </div>
-                        <button type="button" onclick="openKaspiPayDeepLink()" class="w-full bg-cp-pill hover:bg-cp-pillHover text-cp-ink font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2">
-                            <span>Открыть приложение Kaspi.kz для оплаты</span>
+
+                        <!-- Cashier Phone Copy Row for Instant Transfer -->
+                        <div class="bg-cp-bg rounded-xl px-3.5 py-2.5 border border-cp-border flex items-center justify-between gap-2 text-left">
+                            <div class="min-w-0">
+                                <div class="text-[10px] font-mono uppercase text-cp-muted">Касса COFFEE PEOPLE (перевод по номеру)</div>
+                                <div class="font-mono font-bold text-xs sm:text-sm text-cp-ink">+7 (777) 902-33-99 • Асхат К.</div>
+                            </div>
+                            <button type="button" onclick="copyCashierPhoneForTransfer()" class="bg-cp-ink hover:bg-stone-800 text-white font-mono text-[10px] font-bold px-3 py-2 rounded-lg shrink-0 transition">
+                                Скопировать
+                            </button>
+                        </div>
+
+                        <button type="button" id="open-bank-app-btn" onclick="openKaspiPayDeepLink()" class="w-full bg-cp-pill hover:bg-cp-pillHover text-cp-ink font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                            <span id="open-bank-app-btn-text">Открыть приложение Kaspi.kz для оплаты</span>
                         </button>
                     </div>
-                    <button onclick="completeKaspiPayment()" class="w-full bg-cp-kaspi hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider">
+
+                    <button id="confirm-bank-pay-btn" onclick="completeKaspiPayment()" class="w-full bg-cp-kaspi hover:opacity-95 text-white font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider">
                         Подтвердить оплату и передать на бар
                     </button>
                 </div>
@@ -1988,7 +2040,7 @@
             firebaseAppId: '1:494140120586:web:9c61497125f6f6985449f3',
             firebaseSenderId: '494140120586',
             firebaseConnected: true,
-            kaspiPayUrl: 'https://pay.kaspi.kz/',
+            kaspiPayUrl: 'https://kaspi.kz/transfers',
             greenApiInstanceId: '',
             greenApiToken: '',
             mobizonApiKey: '',
@@ -2041,7 +2093,7 @@
             state.firebaseApiKey = 'AIzaSyCjr15IGtIIaawyiiS-Vna4zEnnHSkJFpQ';
             state.firebaseAppId = '1:494140120586:web:9c61497125f6f6985449f3';
             state.firebaseSenderId = '494140120586';
-            state.kaspiPayUrl = localStorage.getItem('cp_kaspi_pay_url') || 'https://pay.kaspi.kz/';
+            state.kaspiPayUrl = localStorage.getItem('cp_kaspi_pay_url') || 'https://kaspi.kz/transfers';
             state.greenApiInstanceId = localStorage.getItem('cp_green_id_instance') || '';
             state.greenApiToken = localStorage.getItem('cp_green_api_token') || '';
             state.mobizonApiKey = localStorage.getItem('cp_mobizon_api_key') || '';
@@ -4199,17 +4251,156 @@
             document.getElementById('checkout-modal').classList.add('hidden');
         }
 
-        function setPaymentMethod(method) {
-            state.paymentMethod = method;
-            ['kaspi', 'card'].forEach(m => {
-                const el = document.getElementById(`pay-opt-${m}`);
-                if (!el) return;
-                if (m === method) {
-                    el.className = 'flex items-center justify-between p-3 rounded-xl border-2 border-cp-ink bg-cp-bg/40 cursor-pointer';
+        const BANK_CONFIGS = {
+            kaspi: {
+                name: 'Kaspi Gold',
+                pillText: 'KASPI GOLD • COFFEE PEOPLE',
+                pillClass: 'bg-cp-kaspi text-white',
+                amountColor: 'text-cp-kaspi',
+                btnClass: 'bg-cp-kaspi hover:opacity-95 text-white',
+                qrCaption: 'KASPI QR • COFFEE PEOPLE',
+                openBtnText: 'Скопировать номер и открыть Kaspi.kz',
+                appUrl: 'https://kaspi.kz/transfers',
+                schemeUrl: 'kaspi://',
+                subtitle: 'Отсканируйте QR камерой или переведите по номеру в Kaspi Gold'
+            },
+            halyk: {
+                name: 'Halyk Bank',
+                pillText: 'HALYK BANK • HOMEBANK QR',
+                pillClass: 'bg-[#00805F] text-white',
+                amountColor: 'text-[#00805F]',
+                btnClass: 'bg-[#00805F] hover:opacity-95 text-white',
+                qrCaption: 'HALYK QR • COFFEE PEOPLE',
+                openBtnText: 'Скопировать номер и открыть Halyk SuperApp',
+                appUrl: 'https://homebank.kz/',
+                schemeUrl: 'halykbank://',
+                subtitle: 'Отсканируйте QR или переведите по номеру в Halyk Homebank'
+            },
+            freedom: {
+                name: 'Freedom Bank',
+                pillText: 'FREEDOM SUPERAPP • QR PAY',
+                pillClass: 'bg-emerald-600 text-white',
+                amountColor: 'text-emerald-600',
+                btnClass: 'bg-emerald-600 hover:opacity-95 text-white',
+                qrCaption: 'FREEDOM QR • COFFEE PEOPLE',
+                openBtnText: 'Скопировать номер и открыть Freedom SuperApp',
+                appUrl: 'https://bankffin.kz/',
+                schemeUrl: 'freedom24://',
+                subtitle: 'Отсканируйте QR или переведите по номеру во Freedom SuperApp'
+            },
+            bcc: {
+                name: 'BCC.kz (ЦентрКредит)',
+                pillText: 'BCC.KZ • ЦЕНТРКРЕДИТ QR',
+                pillClass: 'bg-amber-600 text-white',
+                amountColor: 'text-amber-600',
+                btnClass: 'bg-amber-600 hover:opacity-95 text-white',
+                qrCaption: 'BCC QR • COFFEE PEOPLE',
+                openBtnText: 'Скопировать номер и открыть BCC.kz',
+                appUrl: 'https://www.bcc.kz/',
+                schemeUrl: 'bcc://',
+                subtitle: 'Отсканируйте QR или переведите по номеру в приложении BCC.kz'
+            },
+            card: {
+                name: 'Apple Pay / Карта онлайн',
+                pillText: 'APPLE PAY • КАРТА ОНЛАЙН',
+                pillClass: 'bg-cp-ink text-white',
+                amountColor: 'text-cp-ink',
+                btnClass: 'bg-cp-ink hover:bg-stone-800 text-white',
+                qrCaption: 'ОНЛАЙН-ЭКВАЙРИНГ • COFFEE PEOPLE',
+                openBtnText: 'Оплатить картой онлайн',
+                appUrl: 'https://kaspi.kz/transfers',
+                schemeUrl: '',
+                subtitle: 'Быстрое подтверждение оплаты в 1 клик'
+            }
+        };
+
+        function copyTextSafe(text) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text);
                 } else {
-                    el.className = 'flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer';
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    ta.remove();
+                }
+            } catch (e) {}
+        }
+
+        function copyCashierPhoneForTransfer() {
+            const { finalTotal } = calculateTotals();
+            copyTextSafe('+77779023399');
+            showSystemToast(
+                '+7 (777) 902-33-99',
+                'Номер кассы скопирован',
+                `Номер +77779023399 скопирован в буфер! Вставьте его в разделе «Переводы» вашего банка (сумма: ${finalTotal} ₸).`
+            );
+        }
+
+        function updateBankModalUI() {
+            const method = state.paymentMethod || 'kaspi';
+            const cfg = BANK_CONFIGS[method] || BANK_CONFIGS.kaspi;
+            const { finalTotal } = calculateTotals();
+            const guestName = getEffectiveCupName();
+
+            const pill = document.getElementById('bank-modal-pill');
+            const pillText = document.getElementById('bank-modal-pill-text');
+            const amountEl = document.getElementById('kaspi-qr-amount');
+            const subEl = document.getElementById('bank-modal-subtitle');
+            const qrCap = document.getElementById('bank-qr-caption');
+            const openBtnText = document.getElementById('open-bank-app-btn-text');
+            const confirmBtn = document.getElementById('confirm-bank-pay-btn');
+            const qrImg = document.getElementById('payment-real-qr-img');
+
+            if (pill) pill.className = `inline-flex items-center gap-2 ${cfg.pillClass} px-4 py-1 rounded-full font-mono text-[10px] font-bold uppercase transition`;
+            if (pillText) pillText.textContent = cfg.pillText;
+            if (amountEl) {
+                amountEl.className = `font-mono font-bold text-3xl ${cfg.amountColor} transition`;
+                amountEl.textContent = `${finalTotal.toLocaleString('ru-RU')} ₸`;
+            }
+            if (subEl) subEl.textContent = cfg.subtitle;
+            if (qrCap) qrCap.textContent = cfg.qrCaption;
+            if (openBtnText) openBtnText.textContent = cfg.openBtnText;
+            if (confirmBtn) confirmBtn.className = `w-full ${cfg.btnClass} font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider`;
+
+            // Update quick bank tabs inside modal
+            ['kaspi', 'halyk', 'freedom', 'bcc'].forEach(bKey => {
+                const tab = document.getElementById(`modal-bank-tab-${bKey}`);
+                if (!tab) return;
+                if (bKey === method) {
+                    const activeColor = bKey === 'kaspi' ? 'bg-cp-kaspi text-white' : bKey === 'halyk' ? 'bg-[#00805F] text-white' : bKey === 'freedom' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white';
+                    tab.className = `py-2 rounded-xl ${activeColor} shadow-sm transition`;
+                } else {
+                    tab.className = 'py-2 rounded-xl text-cp-ink hover:bg-white/60 transition';
                 }
             });
+
+            // Build real scannable QR code payload
+            if (qrImg) {
+                const customMerchantLink = (method === 'kaspi' && state.kaspiPayUrl && state.kaspiPayUrl.includes('pay.kaspi.kz/pay/'))
+                    ? state.kaspiPayUrl.trim()
+                    : `https://wa.me/77779023399?text=${encodeURIComponent(`Оплата заказа COFFEE PEOPLE (${cfg.name}): ${finalTotal} ₸, гость: ${guestName}`)}`;
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(customMerchantLink)}`;
+            }
+        }
+
+        function setPaymentMethod(method) {
+            state.paymentMethod = method;
+            ['kaspi', 'halyk', 'freedom', 'bcc', 'card'].forEach(m => {
+                const el = document.getElementById(`pay-opt-${m}`);
+                if (!el) return;
+                const radio = el.querySelector('input[type="radio"]');
+                if (m === method) {
+                    el.className = 'flex items-center justify-between p-3 rounded-xl border-2 border-cp-ink bg-cp-bg/40 cursor-pointer transition';
+                    if (radio) radio.checked = true;
+                } else {
+                    el.className = 'flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition';
+                    if (radio) radio.checked = false;
+                }
+            });
+            updateBankModalUI();
         }
 
         function placeFinalOrder() {
@@ -4251,10 +4442,10 @@
             document.getElementById('kaspi-target-name').textContent = cupName;
             document.getElementById('kaspi-target-phone').textContent = phone;
             document.getElementById('kaspi-bonus-part').textContent = `${bonusDisc.toLocaleString('ru-RU')} ₸`;
-            document.getElementById('kaspi-qr-amount').textContent = `${finalTotal.toLocaleString('ru-RU')} ₸`;
+            updateBankModalUI();
             modal.classList.remove('hidden');
 
-            if (finalTotal === 0 || state.paymentMethod !== 'kaspi') {
+            if (finalTotal === 0 || state.paymentMethod === 'card') {
                 completeKaspiPayment();
             } else {
                 kaspiBox.classList.remove('hidden');
@@ -4281,11 +4472,12 @@
             const shortItems = state.cart.map(c => c.qty > 1 ? `${c.name} ×${c.qty}` : c.name);
             const arrivalInfo = state.orderTimingMode === 'remote' ? state.arrivalPreset : 'Сразу ~7 мин';
 
+            const selectedBankName = (BANK_CONFIGS[state.paymentMethod] && BANK_CONFIGS[state.paymentMethod].name) || 'Kaspi Gold';
             const payTypeNote = (bonusDisc > 0 && finalTotal === 0)
                 ? `100% Оплачено бонусами (${bonusDisc} ₸)`
                 : (bonusDisc > 0)
-                ? `Бонусы (${bonusDisc} ₸) + Kaspi (${finalTotal} ₸)`
-                : `Kaspi Pay (${finalTotal} ₸)`;
+                ? `Бонусы (${bonusDisc} ₸) + ${selectedBankName} (${finalTotal} ₸)`
+                : `${selectedBankName} (${finalTotal} ₸)`;
 
             state.lastOrderSummaryText =
                 `ПРЕДЗАКАЗ ${orderId} — COFFEE PEOPLE\n` +
@@ -4395,7 +4587,31 @@
         }
 
         function openKaspiPayDeepLink() {
-            const targetUrl = (state.kaspiPayUrl && state.kaspiPayUrl.trim()) ? state.kaspiPayUrl.trim() : 'https://pay.kaspi.kz/';
+            const method = state.paymentMethod || 'kaspi';
+            const cfg = BANK_CONFIGS[method] || BANK_CONFIGS.kaspi;
+            const { finalTotal } = calculateTotals();
+
+            // Always copy cashier phone to clipboard so user can paste immediately in bank app
+            copyTextSafe('+77779023399');
+            showSystemToast(
+                '+7 (777) 902-33-99',
+                `${cfg.name} • Номер скопирован`,
+                `Номер кассы +77779023399 скопирован! Сумма к переводу: ${finalTotal} ₸.`
+            );
+
+            let targetUrl = cfg.appUrl;
+            if (method === 'kaspi' && state.kaspiPayUrl && state.kaspiPayUrl.includes('pay.kaspi.kz/pay/')) {
+                targetUrl = state.kaspiPayUrl.trim();
+            }
+
+            // Use Telegram.WebApp.openLink if inside Telegram Mini App so iOS/Android opens native external app
+            try {
+                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openLink === 'function') {
+                    window.Telegram.WebApp.openLink(targetUrl);
+                    return;
+                }
+            } catch (e) {}
+
             window.open(targetUrl, '_blank');
         }
 
