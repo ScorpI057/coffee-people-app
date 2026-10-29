@@ -835,11 +835,16 @@
                         </div>
                     </div>
 
+                    <div class="bg-cp-ochreSoft/70 border border-cp-ochre/60 rounded-xl px-3.5 py-2 flex items-center justify-between text-[11px]">
+                        <span class="font-semibold text-cp-ink">Приветственный бонус за вход (Telegram / ID)</span>
+                        <span class="font-mono font-bold text-emerald-700">+100 ₸ начислено</span>
+                    </div>
+
                     <div class="flex gap-2">
-                        <button onclick="demoAdd250Bonuses()" class="flex-1 bg-cp-ochre text-cp-ink text-xs font-bold py-3 rounded-xl">
-                            Тест +250 ₸ бонусов
+                        <button onclick="closeClientAuthModal()" class="flex-1 bg-cp-ink hover:bg-stone-800 text-white text-xs font-bold py-3 rounded-xl transition">
+                            Перейти к выбору меню
                         </button>
-                        <button onclick="logoutClient()" class="bg-cp-pill text-cp-ink text-xs font-bold px-5 py-3 rounded-xl">
+                        <button onclick="logoutClient()" class="bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-5 py-3 rounded-xl transition">
                             Выйти
                         </button>
                     </div>
@@ -1968,10 +1973,10 @@
 
             // Cloud & Auth State
             firebaseProjectId: 'coffee-people-app',
-            firebaseApiKey: '',
-            firebaseAppId: '',
-            firebaseSenderId: '',
-            firebaseConnected: false,
+            firebaseApiKey: 'AIzaSyCjr15IGtIIaawyiiS-Vna4zEnnHSkJFpQ',
+            firebaseAppId: '1:494140120586:web:9c61497125f6f6985449f3',
+            firebaseSenderId: '494140120586',
+            firebaseConnected: true,
             mobizonApiKey: '',
             authModeTab: 'register', // 'register' | 'pinlogin'
             clientUser: null, // { name, phone, pin, bonuses, orders }
@@ -2018,10 +2023,10 @@
         };
 
         try {
-            state.firebaseProjectId = localStorage.getItem('cp_firebase_project_id') || 'coffee-people-app';
-            state.firebaseApiKey = localStorage.getItem('cp_fb_apiKey') || '';
-            state.firebaseAppId = localStorage.getItem('cp_fb_appId') || '';
-            state.firebaseSenderId = localStorage.getItem('cp_fb_messagingSenderId') || '';
+            state.firebaseProjectId = 'coffee-people-app';
+            state.firebaseApiKey = 'AIzaSyCjr15IGtIIaawyiiS-Vna4zEnnHSkJFpQ';
+            state.firebaseAppId = '1:494140120586:web:9c61497125f6f6985449f3';
+            state.firebaseSenderId = '494140120586';
             state.mobizonApiKey = localStorage.getItem('cp_mobizon_api_key') || '';
         } catch (e) {}
 
@@ -2100,6 +2105,21 @@
             }
         }
 
+        function sanitizeAccountBonuses(userObj) {
+            if (!userObj) return userObj;
+            const orders = Array.isArray(userObj.orders) ? userObj.orders : [];
+            const earnedFromOrders = orders.reduce((sum, o) => sum + (Number(o.cashback) || 0), 0);
+            const maxLegitBonuses = 100 + earnedFromOrders;
+            // Welcome 100 bonuses for login; reset any inflated test clicks
+            if (typeof userObj.bonuses !== 'number' || userObj.bonuses <= 0 && orders.length === 0) {
+                userObj.bonuses = 100;
+            } else if (userObj.bonuses > maxLegitBonuses) {
+                userObj.bonuses = maxLegitBonuses;
+            }
+            userObj.welcomeBonusGranted = true;
+            return userObj;
+        }
+
         function initTelegramMiniAppAuth() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) {
@@ -2112,7 +2132,7 @@
                         const tgKey = `TG_${tgUser.id}`;
                         const db = loadAccountsDb();
                         const existing = db[tgKey];
-                        state.clientUser = existing ? {
+                        state.clientUser = sanitizeAccountBonuses(existing ? {
                             ...existing,
                             name: fullName || existing.name,
                             isTelegram: true,
@@ -2121,11 +2141,12 @@
                             name: fullName,
                             phone: state.activeOrderPhone || '',
                             pin: '0000',
-                            bonuses: 0,
+                            bonuses: 100,
+                            welcomeBonusGranted: true,
                             orders: [],
                             isTelegram: true,
                             tgId: tgUser.id
-                        };
+                        });
                         db[tgKey] = state.clientUser;
                         saveAccountsDb(db);
                         state.cupName = state.clientUser.name;
@@ -2163,7 +2184,9 @@
                 if (activePhone) {
                     const db = loadAccountsDb();
                     if (db[activePhone]) {
-                        state.clientUser = db[activePhone];
+                        state.clientUser = sanitizeAccountBonuses(db[activePhone]);
+                        db[activePhone] = state.clientUser;
+                        saveAccountsDb(db);
                         state.activeOrderPhone = activePhone;
                         state.cupName = state.clientUser.name;
                     }
@@ -3078,12 +3101,7 @@
         }
 
         function demoAdd250Bonuses() {
-            if (!state.clientUser) return;
-            state.clientUser.bonuses = (state.clientUser.bonuses || 0) + 250;
-            syncAccountToStorage();
-            syncAllLabels();
-            updateCartViews();
-            showSystemToast(state.clientUser.phone, 'COFFEE PEOPLE ID', `Начислено +250 тестовых бонусов. Баланс: ${state.clientUser.bonuses} ₸.`);
+            closeClientAuthModal();
         }
 
         function toggleGiftPhoneInput(checked) {
@@ -3352,7 +3370,7 @@
                     triggerInputError('client-reg-pin', 'Неверный 4-значный PIN-код аккаунта.');
                     return;
                 }
-                state.clientUser = existing;
+                state.clientUser = sanitizeAccountBonuses(existing);
                 state.activeOrderPhone = phone;
                 state.cupName = existing.name;
                 syncAccountToStorage();
@@ -3400,7 +3418,7 @@
 
             if (state.otpSession.timerId) clearInterval(state.otpSession.timerId);
             const existing = db[phone];
-            state.clientUser = existing ? {
+            state.clientUser = sanitizeAccountBonuses(existing ? {
                 ...existing,
                 name: nameInput,
                 pin
@@ -3409,8 +3427,9 @@
                 phone,
                 pin,
                 bonuses: 100,
+                welcomeBonusGranted: true,
                 orders: []
-            };
+            });
             state.activeOrderPhone = phone;
             state.cupName = nameInput;
             syncAccountToStorage();
@@ -4398,24 +4417,13 @@
         let unsubscribeOrders = null;
 
         function buildFirebaseConfig() {
-            let savedProjectId = "coffee-people-app";
-            let savedApiKey = "";
-            let savedAppId = "";
-            let savedSenderId = "";
-            try {
-                savedProjectId = localStorage.getItem("cp_firebase_project_id") || "coffee-people-app";
-                savedApiKey = localStorage.getItem("cp_fb_apiKey") || "";
-                savedAppId = localStorage.getItem("cp_fb_appId") || "";
-                savedSenderId = localStorage.getItem("cp_fb_messagingSenderId") || "";
-            } catch (e) {}
-
             return {
-                apiKey: savedApiKey || "AIzaSyDemoCoffeePeoplePetropavlKey2026",
-                authDomain: `${savedProjectId}.firebaseapp.com`,
-                projectId: savedProjectId,
-                storageBucket: `${savedProjectId}.firebasestorage.app`,
-                messagingSenderId: savedSenderId || "102938475610",
-                appId: savedAppId || "1:102938475610:web:c0ffeepe0ple2026"
+                apiKey: "AIzaSyCjr15IGtIIaawyiiS-Vna4zEnnHSkJFpQ",
+                authDomain: "coffee-people-app.firebaseapp.com",
+                projectId: "coffee-people-app",
+                storageBucket: "coffee-people-app.firebasestorage.app",
+                messagingSenderId: "494140120586",
+                appId: "1:494140120586:web:9c61497125f6f6985449f3"
             };
         }
 
@@ -4495,9 +4503,7 @@
                                 id: data.orderNumber || data.id || `#${d.id}`
                             };
                         });
-                        if (orders.length > 0 || (typeof state !== "undefined" && state.firebaseApiKey)) {
-                            window.renderBoard?.(orders);
-                        }
+                        window.renderBoard?.(orders);
                     },
                     (err) => {
                         console.warn("[CP] Ожидание настройки ключей Firestore / правил доступа:", err.message);
