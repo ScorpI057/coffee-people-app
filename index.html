@@ -1150,9 +1150,20 @@
                         Имя на стаканчике: <b id="kaspi-target-name" class="text-cp-ink">Гость</b> (<span id="kaspi-target-phone" class="font-mono">+7</span>)<br>
                         Списано бонусов: <b id="kaspi-bonus-part" class="font-mono text-emerald-700">0 ₸</b>
                     </p>
-                    <div class="bg-white rounded-2xl p-5 border border-cp-border">
-                        <div class="text-xs text-cp-muted">К оплате через Kaspi Gold</div>
-                        <div id="kaspi-qr-amount" class="font-mono font-bold text-3xl text-cp-kaspi mt-1">0 ₸</div>
+                    <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
+                        <div class="text-xs text-cp-muted">К оплате через Kaspi Gold / Kaspi QR</div>
+                        <div id="kaspi-qr-amount" class="font-mono font-bold text-3xl text-cp-kaspi">0 ₸</div>
+                        <div class="flex items-center justify-center">
+                            <div class="p-2.5 bg-cp-bg rounded-2xl border border-cp-border inline-flex flex-col items-center gap-1.5">
+                                <svg class="w-28 h-28 text-cp-ink" viewBox="0 0 100 100" fill="currentColor">
+                                    <path d="M10 10h26v26H10zM15 15v16h16V15zM20 20h6v6h-6zM64 10h26v26H64zM69 15v16h16V15zM74 20h6v6h-6zM10 64h26v26H10zM15 69v16h16V69zM20 74h6v6h-6zM42 10h6v12h-6zM52 16h6v14h-6zM42 28h8v8h-8zM10 42h14v6H10zM30 42h12v12H30zM48 44h10v6H48zM64 42h12v6H64zM82 42h8v14h-8zM14 52h10v6H14zM42 56h16v8H42zM64 54h12v12H64zM42 70h8v12h-8zM54 68h8v8h-8zM68 72h14v8H68zM84 64h6v16h-6zM44 84h18v6H44zM68 84h22v6H68z"/>
+                                </svg>
+                                <span class="font-mono text-[10px] font-bold text-cp-muted uppercase">COFFEE PEOPLE • KASPI QR</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="openKaspiPayDeepLink()" class="w-full bg-cp-pill hover:bg-cp-pillHover text-cp-ink font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                            <span>Открыть приложение Kaspi.kz для оплаты</span>
+                        </button>
                     </div>
                     <button onclick="completeKaspiPayment()" class="w-full bg-cp-kaspi hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider">
                         Подтвердить оплату и передать на бар
@@ -1977,6 +1988,9 @@
             firebaseAppId: '1:494140120586:web:9c61497125f6f6985449f3',
             firebaseSenderId: '494140120586',
             firebaseConnected: true,
+            kaspiPayUrl: 'https://pay.kaspi.kz/',
+            greenApiInstanceId: '',
+            greenApiToken: '',
             mobizonApiKey: '',
             authModeTab: 'register', // 'register' | 'pinlogin'
             clientUser: null, // { name, phone, pin, bonuses, orders }
@@ -2027,6 +2041,9 @@
             state.firebaseApiKey = 'AIzaSyCjr15IGtIIaawyiiS-Vna4zEnnHSkJFpQ';
             state.firebaseAppId = '1:494140120586:web:9c61497125f6f6985449f3';
             state.firebaseSenderId = '494140120586';
+            state.kaspiPayUrl = localStorage.getItem('cp_kaspi_pay_url') || 'https://pay.kaspi.kz/';
+            state.greenApiInstanceId = localStorage.getItem('cp_green_id_instance') || '';
+            state.greenApiToken = localStorage.getItem('cp_green_api_token') || '';
             state.mobizonApiKey = localStorage.getItem('cp_mobizon_api_key') || '';
         } catch (e) {}
 
@@ -3826,7 +3843,19 @@
                                     <input id="staff-firebase-appid-inp" type="text" value="${state.firebaseAppId || ''}" placeholder="1:123456789:web:abcdef" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">API-ключ Mobizon.kz (опционально)</label>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Ссылка Kaspi Pay (Вариант А)</label>
+                                    <input id="staff-kaspi-url-inp" type="text" value="${state.kaspiPayUrl || 'https://pay.kaspi.kz/'}" placeholder="https://pay.kaspi.kz/pay/..." class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Канал 2: Green-API idInstance (WhatsApp)</label>
+                                    <input id="staff-green-id-inp" type="text" value="${state.greenApiInstanceId || ''}" placeholder="Например: 1101823456" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Канал 2: Green-API apiTokenInstance</label>
+                                    <input id="staff-green-token-inp" type="password" value="${state.greenApiToken || ''}" placeholder="Токен из кабинета green-api.com" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">API-ключ Mobizon.kz (SMS-шлюз)</label>
                                     <input id="staff-mobizon-key-inp" type="password" value="${state.mobizonApiKey}" placeholder="Необязательно (работает WhatsApp)" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                             </div>
@@ -3919,7 +3948,22 @@
             const fbInp = document.getElementById('staff-firebase-id-inp');
             const apiInp = document.getElementById('staff-firebase-apikey-inp');
             const appInp = document.getElementById('staff-firebase-appid-inp');
+            const kaspiInp = document.getElementById('staff-kaspi-url-inp');
+            const greenIdInp = document.getElementById('staff-green-id-inp');
+            const greenTokInp = document.getElementById('staff-green-token-inp');
             const mbInp = document.getElementById('staff-mobizon-key-inp');
+            if (kaspiInp) {
+                state.kaspiPayUrl = kaspiInp.value.trim() || 'https://pay.kaspi.kz/';
+                try { localStorage.setItem('cp_kaspi_pay_url', state.kaspiPayUrl); } catch (e) {}
+            }
+            if (greenIdInp) {
+                state.greenApiInstanceId = greenIdInp.value.trim();
+                try { localStorage.setItem('cp_green_id_instance', state.greenApiInstanceId); } catch (e) {}
+            }
+            if (greenTokInp) {
+                state.greenApiToken = greenTokInp.value.trim();
+                try { localStorage.setItem('cp_green_api_token', state.greenApiToken); } catch (e) {}
+            }
             if (fbInp) {
                 state.firebaseProjectId = fbInp.value.trim() || 'coffee-people-app';
                 try { localStorage.setItem('cp_firebase_project_id', state.firebaseProjectId); } catch (e) {}
@@ -3979,9 +4023,10 @@
                 showSystemToast(ord.clientPhone, `Заказ ${ord.id} готовится`, msg);
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `Заказ ${ord.id} на баре`, message: msg });
             } else if (nextStatus === 'ready') {
-                const msg = `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})!`;
+                const msg = `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})! Назовите ваше имя бариста.`;
                 showSystemToast(ord.clientPhone, `ГОТОВО У СТОЙКИ • ${ord.id}`, msg);
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `ГОТОВО У СТОЙКИ • ${ord.id}`, message: msg });
+                sendAutoWhatsAppChannel2(ord.clientPhone, `☕ *COFFEE PEOPLE*\nЗдравствуйте, *${ord.clientName}*! Ваш заказ *${ord.id}* (${ord.branch}) ГОТОВ и ждёт вас у стойки выдачи.\nПодача: ${ord.vessel || 'С собой'}. Назовите ваше имя бариста!`);
             }
         }
 
@@ -4318,6 +4363,40 @@
                 `Имя на стаканчике: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ кэшбэка.`
             );
             if (window.lucide) lucide.createIcons();
+        }
+
+        async function sendAutoWhatsAppChannel2(phoneStr, textMessage) {
+            const digits = (phoneStr || '').replace(/\D/g, '');
+            if (digits.length < 11) return false;
+            // 1) Канал 2: Авто-отправка через шлюз Green-API (если заполнены idInstance и apiTokenInstance)
+            if (state.greenApiInstanceId && state.greenApiToken) {
+                try {
+                    const url = `https://api.green-api.com/waInstance${encodeURIComponent(state.greenApiInstanceId)}/sendMessage/${encodeURIComponent(state.greenApiToken)}`;
+                    await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: `${digits}@c.us`,
+                            message: textMessage
+                        })
+                    });
+                    return true;
+                } catch (e) {}
+            }
+            // 2) Резервный канал: SMS через Mobizon.kz (если указан ключ)
+            if (state.mobizonApiKey) {
+                try {
+                    const smsUrl = `https://api.mobizon.kz/service/message/sendsmsmessage?recipient=${encodeURIComponent(digits)}&text=${encodeURIComponent(textMessage.replace(/[*]/g, ''))}&apiKey=${encodeURIComponent(state.mobizonApiKey)}`;
+                    await fetch(smsUrl);
+                    return true;
+                } catch (e) {}
+            }
+            return false;
+        }
+
+        function openKaspiPayDeepLink() {
+            const targetUrl = (state.kaspiPayUrl && state.kaspiPayUrl.trim()) ? state.kaspiPayUrl.trim() : 'https://pay.kaspi.kz/';
+            window.open(targetUrl, '_blank');
         }
 
         function sendReceiptToRealWhatsApp() {
