@@ -433,6 +433,11 @@
                         <button onclick="setQuickFilter('new')" data-filter="new" class="filter-chip bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition">Новинки</button>
                         <button onclick="setQuickFilter('salmon')" data-filter="salmon" class="filter-chip bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition">С сёмгой</button>
                         <button onclick="setQuickFilter('special')" data-filter="special" class="filter-chip bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition">Le Petit Prince</button>
+                        <button onclick="setQuickFilter('fav')" data-filter="fav" class="filter-chip bg-cp-pill hover:bg-cp-pillHover text-cp-ink text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition flex items-center gap-1">
+                            <span class="text-red-500">♥</span>
+                            <span>Любимые</span>
+                            <span id="fav-chip-count" class="font-mono text-[10px] bg-white/80 text-cp-ink px-1.5 py-0.2 rounded-full">0</span>
+                        </button>
                     </div>
                 </div>
 
@@ -580,18 +585,53 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
-                            <a href="https://www.instagram.com/coffee_people_petro/" target="_blank" rel="noopener noreferrer" title="Instagram @coffee_people_petro" class="w-10 h-10 rounded-full bg-cp-pill hover:bg-cp-ink hover:text-white text-cp-ink flex items-center justify-center transition">
-                                <i data-lucide="instagram" class="w-4 h-4"></i>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <!-- Instagram Pill with Signature Gradient & Crisp Inline SVG -->
+                            <a href="https://www.instagram.com/coffee_people_petro/" target="_blank" rel="noopener noreferrer" title="Instagram @coffee_people_petro" class="group inline-flex items-center gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full bg-cp-surface hover:bg-white border border-cp-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition duration-200">
+                                <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                                        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+                                    </svg>
+                                </span>
+                                <span class="text-left leading-tight">
+                                    <span class="block text-[9px] font-mono uppercase tracking-wider text-cp-muted">Instagram</span>
+                                    <span class="block text-xs font-extrabold text-cp-ink group-hover:text-[#DD2A7B] transition">@coffee_people_petro</span>
+                                </span>
                             </a>
-                            <a href="https://wa.me/77779023399" target="_blank" rel="noopener noreferrer" title="WhatsApp COFFEE PEOPLE" class="w-10 h-10 rounded-full bg-cp-pill hover:bg-cp-whatsapp hover:text-white text-cp-ink flex items-center justify-center transition">
-                                <i data-lucide="message-circle" class="w-4 h-4"></i>
+
+                            <!-- WhatsApp Pill with Official Brand SVG -->
+                            <a href="https://wa.me/77779023399" target="_blank" rel="noopener noreferrer" title="WhatsApp COFFEE PEOPLE" class="group inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full bg-cp-surface hover:bg-white border border-cp-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition duration-200">
+                                <span class="w-8 h-8 rounded-full bg-[#15803D] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+                                        <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+                                    </svg>
+                                </span>
+                                <span class="text-xs font-extrabold text-cp-ink group-hover:text-[#15803D] transition">WhatsApp</span>
                             </a>
-                            <a href="https://t.me/+77779023399" target="_blank" rel="noopener noreferrer" title="Telegram" class="w-10 h-10 rounded-full bg-cp-pill hover:bg-cp-blue hover:text-white text-cp-ink flex items-center justify-center transition">
-                                <i data-lucide="send" class="w-4 h-4"></i>
+
+                            <!-- Telegram Pill with Official Paper-Plane SVG -->
+                            <a href="https://t.me/+77779023399" target="_blank" rel="noopener noreferrer" title="Telegram COFFEE PEOPLE" class="group inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full bg-cp-surface hover:bg-white border border-cp-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition duration-200">
+                                <span class="w-8 h-8 rounded-full bg-[#0088CC] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m22 2-7 20-4-9-9-4Z"/>
+                                        <path d="M22 2 11 13"/>
+                                    </svg>
+                                </span>
+                                <span class="text-xs font-extrabold text-cp-ink group-hover:text-[#0088CC] transition">Telegram</span>
                             </a>
-                            <a href="https://2gis.kz/petropavlovsk" target="_blank" rel="noopener noreferrer" title="2ГИС Петропавловск" class="w-10 h-10 rounded-full bg-cp-pill hover:bg-cp-blue hover:text-white text-cp-ink flex items-center justify-center transition">
-                                <i data-lucide="map-pin" class="w-4 h-4"></i>
+
+                            <!-- 2GIS Route Pill with Pin SVG -->
+                            <a href="https://2gis.kz/petropavlovsk" target="_blank" rel="noopener noreferrer" title="Маршрут в 2ГИС Петропавловск" class="group inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full bg-cp-surface hover:bg-white border border-cp-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition duration-200">
+                                <span class="w-8 h-8 rounded-full bg-cp-ink text-cp-ochre flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                </span>
+                                <span class="text-xs font-extrabold text-cp-ink group-hover:text-cp-blue transition">2ГИС</span>
                             </a>
                         </div>
                     </div>
@@ -704,24 +744,54 @@
     </div>
 
     <!-- ==========================================
-         MOBILE FLOATING BOTTOM BAR
+         MOBILE FLOATING CHECKOUT PILL + 5-TAB APP NAVIGATION BAR (LIKE IMG_7430)
          ========================================== -->
-    <div class="lg:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-gradient-to-t from-cp-bg via-cp-bg/95 to-transparent pointer-events-none">
-        <div class="max-w-lg mx-auto flex items-center gap-2.5 pointer-events-auto">
-            <button onclick="openOrderConfigModal()" class="h-14 px-3.5 rounded-2xl bg-cp-surface border border-cp-border shadow-lg flex flex-col items-center justify-center text-cp-ink shrink-0">
-                <i data-lucide="clock" class="w-4 h-4 text-cp-blue"></i>
-                <span class="text-[9px] font-mono font-bold uppercase mt-0.5">Время</span>
-            </button>
-            <button onclick="openCheckoutModal()" class="flex-1 h-14 bg-cp-ink text-cp-surface rounded-2xl px-5 shadow-xl flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span id="mobile-cart-count" class="w-7 h-7 rounded-full bg-cp-ochre text-cp-ink font-mono font-bold text-xs flex items-center justify-center">0</span>
-                    <div class="text-left">
-                        <div class="text-[10px] text-stone-300" id="mobile-cart-sub">Предзаказ по имени</div>
-                        <div class="text-xs font-bold">Перейти к оплате</div>
+    <div class="lg:hidden fixed bottom-0 inset-x-0 z-40 pointer-events-none flex flex-col">
+        <!-- Floating Active Order / Cart Bar right above Bottom Nav -->
+        <div id="mobile-floating-cart-pill" class="px-3 pb-2 pointer-events-auto max-w-lg mx-auto w-full">
+            <div class="flex items-center gap-2">
+                <button onclick="openOrderConfigModal()" class="h-12 px-3 rounded-2xl bg-cp-surface/95 backdrop-blur border border-cp-border shadow-lg flex flex-col items-center justify-center text-cp-ink shrink-0">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-cp-blue"></i>
+                    <span class="text-[9px] font-mono font-bold uppercase mt-0.5">Время</span>
+                </button>
+                <button onclick="openCheckoutModal()" class="flex-1 h-12 bg-cp-ink text-cp-surface rounded-2xl px-4 shadow-xl flex items-center justify-between border border-white/10">
+                    <div class="flex items-center gap-2.5">
+                        <span id="mobile-cart-count" class="w-6 h-6 rounded-full bg-cp-ochre text-cp-ink font-mono font-extrabold text-xs flex items-center justify-center">0</span>
+                        <div class="text-left">
+                            <div class="text-[9px] text-stone-300 leading-none" id="mobile-cart-sub">Предзаказ по имени</div>
+                            <div class="text-xs font-bold leading-tight mt-0.5">Перейти к оплате</div>
+                        </div>
                     </div>
-                </div>
-                <span id="mobile-cart-total" class="font-mono font-bold text-sm">0 ₸</span>
-            </button>
+                    <span id="mobile-cart-total" class="font-mono font-bold text-xs sm:text-sm text-cp-ochre">0 ₸</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5-Tab Bottom Bar (Меню | Профиль | Бронь | Любимые | Корзина) -->
+        <div class="bg-[#181512]/95 backdrop-blur-md text-stone-300 border-t border-white/10 px-2 py-1.5 pointer-events-auto">
+            <div class="max-w-lg mx-auto grid grid-cols-5 gap-1 text-center">
+                <button type="button" onclick="setQuickFilter('all'); document.getElementById('menu-sections-root').scrollIntoView({behavior:'smooth'});" class="flex flex-col items-center justify-center py-1 text-white hover:text-cp-ochre transition">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-semibold mt-1">Меню</span>
+                </button>
+                <button type="button" onclick="openClientAuthModal()" class="flex flex-col items-center justify-center py-1 hover:text-white transition">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-semibold mt-1">Профиль</span>
+                </button>
+                <button type="button" onclick="openOrderConfigModal(); setOrderTimingMode('reserve');" class="flex flex-col items-center justify-center py-1 text-cp-ochre hover:text-amber-300 transition">
+                    <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-bold mt-1">Бронь</span>
+                </button>
+                <button type="button" onclick="setQuickFilter('fav'); document.getElementById('menu-sections-root').scrollIntoView({behavior:'smooth'});" class="relative flex flex-col items-center justify-center py-1 hover:text-white transition">
+                    <i data-lucide="heart" class="w-4 h-4"></i>
+                    <span id="mobile-nav-fav-badge" class="hidden absolute top-0.5 right-4 bg-red-500 text-white font-mono text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                    <span class="text-[10px] font-semibold mt-1">Любимые</span>
+                </button>
+                <button type="button" onclick="openCheckoutModal()" class="flex flex-col items-center justify-center py-1 hover:text-white transition">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-semibold mt-1">Корзина</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1048,14 +1118,16 @@
                     </div>
                 </div>
 
-                <!-- 2. Order Timing Mode: Remote Pre-Order vs In-Cafe Immediate -->
+                <!-- 2. Order Timing Mode: Remote Pre-Order vs Advance Reservation vs In-Cafe Immediate -->
                 <div>
-                    <label class="block text-[11px] font-bold uppercase text-cp-muted mb-1.5">Когда приготовить заказ?</label>
-                    <div class="grid grid-cols-2 bg-cp-pill p-1 rounded-2xl text-xs font-bold mb-2.5">
-                        <button type="button" onclick="setOrderTimingMode('remote')" id="modal-timing-remote" class="py-2.5 rounded-xl bg-white text-cp-ink shadow-sm">Удаленно ко времени</button>
-                        <button type="button" onclick="setOrderTimingMode('now')" id="modal-timing-now" class="py-2.5 rounded-xl text-cp-muted">Я уже в кофейне (Сразу)</button>
+                    <label class="block text-[11px] font-bold uppercase text-cp-muted mb-1.5">Формат визита и бронирования</label>
+                    <div class="grid grid-cols-3 bg-cp-pill p-1 rounded-2xl text-[11px] font-bold mb-2.5 gap-1">
+                        <button type="button" onclick="setOrderTimingMode('remote')" id="modal-timing-remote" class="py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm">Удаленно ко времени</button>
+                        <button type="button" onclick="setOrderTimingMode('reserve')" id="modal-timing-reserve" class="py-2.5 px-1.5 rounded-xl text-cp-muted">Бронь заранее</button>
+                        <button type="button" onclick="setOrderTimingMode('now')" id="modal-timing-now" class="py-2.5 px-1.5 rounded-xl text-cp-muted">Я уже в кофейне (Сразу)</button>
                     </div>
 
+                    <!-- Mode A: Remote Pre-order (10/15/25 min or exact time) -->
                     <div id="remote-time-options-box" class="space-y-2">
                         <div class="grid grid-cols-3 gap-1.5">
                             <button type="button" onclick="selectArrivalPreset('Через 10 мин')" class="time-preset-btn py-2 px-2 rounded-xl border border-cp-border bg-white text-xs font-bold">Через 10 мин</button>
@@ -1066,6 +1138,51 @@
                             <span class="text-xs font-semibold text-cp-ink">Или укажите точное время визита:</span>
                             <input id="custom-arrival-time-input" type="time" onchange="selectArrivalPreset('К ' + this.value)" class="bg-white rounded-lg px-2.5 py-1 font-mono text-xs font-bold focus:outline-none">
                         </div>
+                    </div>
+
+                    <!-- Mode B: Advance Table & Time Reservation ("Бронь заранее") -->
+                    <div id="advance-reserve-options-box" class="hidden bg-cp-blueSoft/70 border border-cp-blue/25 rounded-2xl p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-[10px] font-bold uppercase text-cp-blue">Бронь столика и предзаказ заранее</span>
+                            <span class="font-mono text-[10px] font-bold bg-white text-cp-blue px-2 py-0.5 rounded">Без депозита</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">День визита</label>
+                                <select id="reserve-day-select" onchange="updateReservationSummary()" class="w-full bg-white border border-cp-border rounded-xl px-2.5 py-2 text-xs font-bold focus:outline-none">
+                                    <option value="Сегодня">Сегодня</option>
+                                    <option value="Завтра">Завтра</option>
+                                    <option value="Послезавтра">Послезавтра</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">К какому часу</label>
+                                <input id="reserve-exact-time" type="time" value="19:00" onchange="updateReservationSummary()" class="w-full bg-white border border-cp-border rounded-xl px-2.5 py-1.5 font-mono text-xs font-bold focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Гостей за столом</label>
+                                <select id="reserve-guests-select" onchange="updateReservationSummary()" class="w-full bg-white border border-cp-border rounded-xl px-2.5 py-2 text-xs font-bold focus:outline-none">
+                                    <option value="1 гость">1 гость</option>
+                                    <option value="2 гостя" selected>2 гостя</option>
+                                    <option value="3–4 гостя">3–4 гостя</option>
+                                    <option value="Компания 5+">Компания 5+</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Зона в кофейне</label>
+                                <select id="reserve-zone-select" onchange="updateReservationSummary()" class="w-full bg-white border border-cp-border rounded-xl px-2.5 py-2 text-xs font-bold focus:outline-none">
+                                    <option value="У окна">У панорамного окна</option>
+                                    <option value="Мягкий диван">Мягкий диван</option>
+                                    <option value="Стол с розеткой">Стол для ноутбука</option>
+                                    <option value="Любой стол">Любой свободный</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" onclick="submitQuickTableReservationOnly()" class="w-full bg-cp-blue hover:bg-cp-blueDark text-white font-bold py-2.5 px-3 rounded-xl text-xs transition shadow-sm">
+                            Забронировать столик в 1 клик (можно без меню)
+                        </button>
                     </div>
                 </div>
 
@@ -1214,8 +1331,18 @@
                         <div class="flex items-center gap-3">
                             <span class="w-9 h-9 rounded-lg bg-cp-ink text-white flex items-center justify-center shrink-0"><i data-lucide="credit-card" class="w-4 h-4"></i></span>
                             <div>
-                                <div class="text-xs font-bold">Apple Pay / Любая карта РК</div>
-                                <div class="text-[10px] text-cp-muted">Мгновенная онлайн-оплата в 1 клик</div>
+                                <div class="text-xs font-bold">Apple Pay / Картой онлайн в 1 клик</div>
+                                <div class="text-[10px] text-cp-muted">Мгновенное подтверждение без ввода реквизитов</div>
+                            </div>
+                        </div>
+                        <input type="radio" name="pay_m" class="accent-cp-ink">
+                    </label>
+                    <label onclick="setPaymentMethod('at_bar')" id="pay-opt-at_bar" class="flex items-center justify-between p-3 rounded-xl border border-cp-border cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-cp-blue text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0">БАР</span>
+                            <div>
+                                <div class="text-xs font-bold">При получении у стойки (Kaspi QR на баре)</div>
+                                <div class="text-[10px] text-cp-muted">Отправить заказ сейчас — оплатить при получении</div>
                             </div>
                         </div>
                         <input type="radio" name="pay_m" class="accent-cp-ink">
@@ -2160,6 +2287,11 @@
             orderComment: '',
             searchQuery: '',
             quickFilter: 'all',
+            favorites: [],
+            reserveDate: 'Сегодня',
+            reserveTime: '19:00',
+            reserveGuests: '2 гостя',
+            reserveZone: 'У панорамного окна',
             cart: [],
             promoCode: '',
             promoDiscountRate: 0,
@@ -2421,6 +2553,11 @@
             try {
                 localStorage.removeItem('cp_petro_orders_v4');
 
+                const savedFavs = localStorage.getItem('cp_favorites_v5');
+                if (savedFavs) {
+                    const parsedFavs = JSON.parse(savedFavs);
+                    if (Array.isArray(parsedFavs)) state.favorites = parsedFavs;
+                }
                 const savedOrders = localStorage.getItem(STORAGE_KEY_REAL_ORDERS);
                 if (savedOrders) {
                     const parsed = JSON.parse(savedOrders);
@@ -2504,6 +2641,7 @@
             selectMoodCombo('energy');
             syncAllLabels();
             updateCartViews();
+            updateFavoritesBadges();
             updateStaffCounters();
             setupScrollListeners();
             if (window.lucide) lucide.createIcons();
@@ -3261,7 +3399,11 @@
 
             const html = MENU_DATA.map(sec => {
                 const items = sec.items.filter(it => {
-                    const matchFilter = state.quickFilter === 'all' || (it.tags && it.tags.includes(state.quickFilter));
+                    const matchFilter = state.quickFilter === 'all'
+                        ? true
+                        : state.quickFilter === 'fav'
+                        ? (state.favorites && state.favorites.includes(it.id))
+                        : (it.tags && it.tags.includes(state.quickFilter));
                     const matchSearch = !q ||
                         it.name.toLowerCase().includes(q) ||
                         (it.kzName && it.kzName.toLowerCase().includes(q)) ||
@@ -3276,14 +3418,14 @@
 
                 return `
                     <section id="${sec.id}" class="menu-sec-block">
-                        <div class="mb-6 flex flex-wrap items-baseline justify-between gap-2 border-b border-cp-border pb-3">
-                            <h2 class="font-display font-bold text-xl sm:text-2xl text-cp-ink tracking-tight uppercase">
+                        <div class="mb-4 sm:mb-6 flex flex-wrap items-baseline justify-between gap-2 border-b border-cp-border pb-2.5">
+                            <h2 class="font-display font-bold text-base sm:text-2xl text-cp-ink tracking-tight uppercase">
                                 ${secHeading}
                             </h2>
-                            <span class="font-mono text-xs font-semibold text-cp-muted">${sec.hours}</span>
+                            <span class="font-mono text-[11px] sm:text-xs font-semibold text-cp-muted">${sec.hours}</span>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-9">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                             ${items.map(it => renderEditorialCard(it)).join('')}
                         </div>
                     </section>
@@ -3296,52 +3438,89 @@
             if (window.lucide) lucide.createIcons();
         }
 
+        function toggleFavoriteItem(itemId) {
+            if (!state.favorites) state.favorites = [];
+            const idx = state.favorites.indexOf(itemId);
+            if (idx >= 0) {
+                state.favorites.splice(idx, 1);
+            } else {
+                state.favorites.push(itemId);
+                try {
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                    }
+                } catch (e) {}
+            }
+            try {
+                localStorage.setItem('cp_favorites_v5', JSON.stringify(state.favorites));
+            } catch (e) {}
+            updateFavoritesBadges();
+            renderMenuSections();
+        }
+
+        function updateFavoritesBadges() {
+            const count = (state.favorites || []).length;
+            const chipEl = document.getElementById('fav-chip-count');
+            const navBadgeEl = document.getElementById('mobile-nav-fav-badge');
+            if (chipEl) chipEl.textContent = count;
+            if (navBadgeEl) {
+                navBadgeEl.textContent = count;
+                if (count > 0) navBadgeEl.classList.remove('hidden');
+                else navBadgeEl.classList.add('hidden');
+            }
+        }
+
         function renderEditorialCard(item) {
             const inCartQty = state.cart.filter(c => c.itemId === item.id).reduce((s, c) => s + c.qty, 0);
             const hasOptions = (item.sizes && item.sizes.length > 0) || item.modGroup !== 'none';
             const displayTitle = (state.lang === 'KZ' && item.kzName) ? `${item.kzName} (${item.name})` : item.name;
             const safeAlt = item.name.replace(/"/g, '&quot;');
+            const isFav = state.favorites && state.favorites.includes(item.id);
 
             return `
-                <article id="card-${item.id}" onclick="openProductModal('${item.id}')" class="cp-product-card flex flex-col justify-between cursor-pointer group transition-all duration-300">
+                <article id="card-${item.id}" onclick="openProductModal('${item.id}')" class="cp-product-card bg-cp-surface rounded-[22px] border border-cp-border overflow-hidden shadow-sm hover:shadow-md flex flex-col justify-between cursor-pointer group transition-all duration-300">
                     <div>
-                        <div class="cp-card-img-wrap mb-3.5">
+                        <div class="aspect-square relative overflow-hidden bg-[#EFE9DD]">
                             <img src="${item.img}" alt="${safeAlt}" loading="lazy" onerror="handleImageFallback(this)" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                             ${item.badge ? `
-                                <span class="absolute top-3.5 left-3.5 ${item.badge === 'NEW' ? 'bg-cp-blue text-white' : item.badge.includes('SPECIAL') ? 'bg-cp-blue text-white' : 'bg-cp-ink text-cp-surface'} font-mono text-[10px] font-bold uppercase px-3 py-1 rounded-full shadow-sm">
+                                <span class="absolute top-2.5 left-2.5 ${item.badge === 'NEW' ? 'bg-cp-blue text-white' : item.badge.includes('SPECIAL') ? 'bg-cp-blue text-white' : 'bg-cp-ochre text-cp-ink'} font-mono text-[9px] sm:text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow-sm">
                                     ${item.badge}
                                 </span>
                             ` : ''}
+                            <!-- Top-Right Favorite Heart Button (like IMG_7430) -->
+                            <button type="button" onclick="event.stopPropagation(); toggleFavoriteItem('${item.id}');" aria-label="В любимые" class="absolute top-2.5 right-2.5 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-sm transition active:scale-90">
+                                <span class="text-sm sm:text-base leading-none ${isFav ? 'text-red-500' : 'text-cp-muted'}">${isFav ? '♥' : '♡'}</span>
+                            </button>
                             ${item.kzName && state.lang === 'RU' ? `
-                                <span class="absolute bottom-3 left-3 bg-cp-surface/95 backdrop-blur text-cp-ink text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                                <span class="hidden sm:inline-block absolute bottom-2.5 left-2.5 bg-cp-surface/95 backdrop-blur text-cp-ink text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                                     ${item.kzName}
                                 </span>
                             ` : ''}
                         </div>
 
-                        <div class="flex items-baseline justify-between gap-2">
-                            <h3 class="font-bold text-base text-cp-ink leading-snug">
-                                ${displayTitle}
-                            </h3>
-                            <span class="font-mono text-[11px] font-medium text-cp-muted shrink-0">${item.weight || ''}</span>
+                        <div class="p-3 sm:p-4 pb-1 sm:pb-2">
+                            <div class="flex items-baseline justify-between gap-1.5">
+                                <h3 class="font-bold text-xs sm:text-base text-cp-ink leading-snug line-clamp-2">
+                                    ${displayTitle}
+                                </h3>
+                            </div>
+                            <div class="font-mono text-[10px] text-cp-muted mt-0.5">${item.weight || ''}</div>
+                            <p class="hidden sm:line-clamp-2 text-xs text-cp-muted mt-1 leading-relaxed">
+                                ${item.desc}
+                            </p>
                         </div>
-
-                        <p class="text-xs text-cp-muted mt-1 line-clamp-2 leading-relaxed">
-                            ${item.desc}
-                        </p>
                     </div>
 
-                    <div class="mt-3.5 pt-1">
+                    <div class="px-3 pb-3 sm:px-4 sm:pb-4 pt-1.5">
                         ${inCartQty > 0 ? `
-                            <div onclick="event.stopPropagation();" class="inline-flex items-center gap-3 bg-cp-ink text-cp-surface px-3.5 py-1.5 rounded-full font-mono text-xs font-bold shadow-sm">
-                                <button onclick="quickAdjustItem('${item.id}', -1)" class="w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center">−</button>
+                            <div onclick="event.stopPropagation();" class="w-full inline-flex items-center justify-between bg-cp-ochre text-cp-ink px-3 py-2 rounded-xl font-mono text-xs font-extrabold shadow-sm">
+                                <button onclick="quickAdjustItem('${item.id}', -1)" class="w-6 h-6 rounded-lg bg-black/10 hover:bg-black/20 flex items-center justify-center">−</button>
                                 <span>${inCartQty} шт • ${(item.price * inCartQty).toLocaleString('ru-RU')} ₸</span>
-                                <button onclick="openProductModal('${item.id}')" class="w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center">+</button>
+                                <button onclick="openProductModal('${item.id}')" class="w-6 h-6 rounded-lg bg-black/10 hover:bg-black/20 flex items-center justify-center">+</button>
                             </div>
                         ` : `
-                            <button type="button" class="cp-price-pill font-mono">
+                            <button type="button" class="bg-cp-ink group-hover:bg-cp-blue text-cp-surface font-mono font-extrabold text-xs sm:text-sm px-3.5 py-2 rounded-xl inline-flex items-center gap-2 transition shadow-sm">
                                 <span>${hasOptions ? 'от ' : ''}${item.price.toLocaleString('ru-RU')} ₸</span>
-                                <span>+</span>
                             </button>
                         `}
                     </div>
@@ -4772,24 +4951,124 @@
             renderLivePickupBoard();
         }
 
+        function updateReservationSummary() {
+            const dayEl = document.getElementById('reserve-day-select');
+            const timeEl = document.getElementById('reserve-exact-time');
+            const guestsEl = document.getElementById('reserve-guests-select');
+            const zoneEl = document.getElementById('reserve-zone-select');
+            state.reserveDate = dayEl ? dayEl.value : 'Сегодня';
+            state.reserveTime = (timeEl && timeEl.value) ? timeEl.value : '19:00';
+            state.reserveGuests = guestsEl ? guestsEl.value : '2 гостя';
+            state.reserveZone = zoneEl ? zoneEl.value : 'У окна';
+            if (state.orderTimingMode === 'reserve') {
+                state.arrivalPreset = `Бронь: ${state.reserveDate} к ${state.reserveTime} (${state.reserveGuests}, ${state.reserveZone})`;
+                state.serveVessel = 'В зале (В керамике)';
+                syncAllLabels();
+            }
+        }
+
         function setOrderTimingMode(mode) {
             state.orderTimingMode = mode;
             const btnRemote = document.getElementById('modal-timing-remote');
+            const btnReserve = document.getElementById('modal-timing-reserve');
             const btnNow = document.getElementById('modal-timing-now');
-            const box = document.getElementById('remote-time-options-box');
+            const boxRemote = document.getElementById('remote-time-options-box');
+            const boxReserve = document.getElementById('advance-reserve-options-box');
+
+            if (btnRemote) btnRemote.className = 'py-2.5 px-1.5 rounded-xl text-cp-muted font-semibold';
+            if (btnReserve) btnReserve.className = 'py-2.5 px-1.5 rounded-xl text-cp-muted font-semibold';
+            if (btnNow) btnNow.className = 'py-2.5 px-1.5 rounded-xl text-cp-muted font-semibold';
 
             if (mode === 'remote') {
-                btnRemote.className = 'py-2.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
-                btnNow.className = 'py-2.5 rounded-xl text-cp-muted font-semibold';
-                box.classList.remove('hidden');
-                if (state.arrivalPreset === 'Приготовить сразу (~5–7 мин)') state.arrivalPreset = 'Через 15 мин';
+                if (btnRemote) btnRemote.className = 'py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
+                if (boxRemote) boxRemote.classList.remove('hidden');
+                if (boxReserve) boxReserve.classList.add('hidden');
+                if (state.arrivalPreset.startsWith('Приготовить') || state.arrivalPreset.startsWith('Бронь:')) {
+                    state.arrivalPreset = 'Через 15 мин';
+                }
+            } else if (mode === 'reserve') {
+                if (btnReserve) btnReserve.className = 'py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
+                if (boxRemote) boxRemote.classList.add('hidden');
+                if (boxReserve) boxReserve.classList.remove('hidden');
+                updateReservationSummary();
             } else {
-                btnNow.className = 'py-2.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
-                btnRemote.className = 'py-2.5 rounded-xl text-cp-muted font-semibold';
-                box.classList.add('hidden');
+                if (btnNow) btnNow.className = 'py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
+                if (boxRemote) boxRemote.classList.add('hidden');
+                if (boxReserve) boxReserve.classList.add('hidden');
                 state.arrivalPreset = 'Приготовить сразу (~5–7 мин)';
             }
             syncAllLabels();
+        }
+
+        function submitQuickTableReservationOnly() {
+            unlockMobileAudioAndNotifications();
+            updateReservationSummary();
+            const nameInp = document.getElementById('modal-cup-name-input');
+            const guestName = (nameInp && nameInp.value.trim()) ? nameInp.value.trim() : getEffectiveCupName();
+            if (!guestName || guestName === 'Гость' || guestName.length < 2) {
+                if (nameInp) {
+                    nameInp.classList.add('shake-error', 'ring-2', 'ring-red-500');
+                    nameInp.focus();
+                    setTimeout(() => nameInp.classList.remove('shake-error', 'ring-2', 'ring-red-500'), 2000);
+                }
+                showSystemToast('Бронь столика', 'Укажите ваше имя', 'Введите ваше имя в поле ниже, чтобы бариста закрепил за вами столик.');
+                return;
+            }
+            syncCupName(guestName);
+
+            let nextSeq = 101;
+            try {
+                const storedSeq = parseInt(localStorage.getItem(STORAGE_KEY_ORDER_SEQ) || '100', 10);
+                nextSeq = (isNaN(storedSeq) ? 100 : storedSeq) + 1;
+                localStorage.setItem(STORAGE_KEY_ORDER_SEQ, String(nextSeq));
+            } catch (e) {
+                nextSeq = 101 + state.staffOrders.length;
+            }
+            const orderId = `#${nextSeq}`;
+            const reserveDetails = `Бронь столика: ${state.reserveDate} к ${state.reserveTime} • ${state.reserveGuests} • ${state.reserveZone}`;
+            const cartItemsList = state.cart.length > 0
+                ? state.cart.map(c => `${c.name} (${c.qty} шт)`)
+                : [reserveDetails];
+            const shortList = state.cart.length > 0
+                ? [reserveDetails, ...state.cart.map(c => `${c.name} ×${c.qty}`)]
+                : [reserveDetails];
+            const { finalTotal } = calculateTotals();
+
+            const resOrderObj = {
+                id: orderId,
+                time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                branch: state.branch,
+                arrivalInfo: `${state.reserveDate} к ${state.reserveTime}`,
+                vessel: `Бронь (${state.reserveGuests}, ${state.reserveZone})`,
+                clientName: guestName,
+                clientPhone: getEffectiveOrderPhone(),
+                clientTgId: (state.clientUser && state.clientUser.tgId) || null,
+                notifyChannel: state.notifyChannel || 'telegram',
+                items: cartItemsList,
+                shortItems: shortList,
+                subtotal: finalTotal,
+                total: finalTotal,
+                earnedCashback: 0,
+                spentBonuses: 0,
+                status: 'cooking'
+            };
+
+            state.staffOrders.unshift(resOrderObj);
+            if (!state.sessionOrderIds.includes(orderId)) {
+                state.sessionOrderIds.push(orderId);
+                try { localStorage.setItem(STORAGE_KEY_SESSION_ORDERS, JSON.stringify(state.sessionOrderIds)); } catch (e) {}
+            }
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({ ...resOrderObj, orderNumber: orderId });
+            }
+            broadcastRealtimeSync();
+            updateStaffCounters();
+            closeOrderConfigModal();
+            showSystemToast(
+                `${state.branch} • ${state.reserveDate} к ${state.reserveTime}`,
+                `БРОНЬ ${orderId} ПОДТВЕРЖДЕНА • ${guestName.toUpperCase()}`,
+                `${reserveDetails}. Ждём вас в COFFEE PEOPLE!`
+            );
         }
 
         function selectArrivalPreset(presetText) {
@@ -4824,6 +5103,8 @@
 
             const timingLabel = state.orderTimingMode === 'remote'
                 ? `Предзаказ: ${state.arrivalPreset}`
+                : state.orderTimingMode === 'reserve'
+                ? `${state.arrivalPreset}`
                 : 'В кофейне: Сразу (~5–7 мин)';
 
             const fullModeTitle = `${timingLabel} • ${state.serveVessel} (${state.branch})`;
@@ -4977,6 +5258,18 @@
                 appUrl: 'https://kaspi.kz/transfers',
                 schemeUrl: '',
                 subtitle: 'Быстрое подтверждение оплаты в 1 клик'
+            },
+            at_bar: {
+                name: 'Оплата у стойки (Kaspi QR)',
+                pillText: 'ОПЛАТА У СТОЙКИ БАРА',
+                pillClass: 'bg-cp-blue text-white',
+                amountColor: 'text-cp-blue',
+                btnClass: 'bg-cp-blue hover:bg-cp-blueDark text-white',
+                qrCaption: 'ОПЛАТА ПРИ ПОЛУЧЕНИИ',
+                openBtnText: 'Оплата при получении у стойки',
+                appUrl: 'https://kaspi.kz/transfers',
+                schemeUrl: '',
+                subtitle: 'Оплата через терминал Kaspi QR при получении заказа'
             }
         };
 
@@ -5108,7 +5401,7 @@
 
         function setPaymentMethod(method) {
             state.paymentMethod = method;
-            ['kaspi', 'halyk', 'freedom', 'bcc', 'card'].forEach(m => {
+            ['kaspi', 'halyk', 'freedom', 'bcc', 'card', 'at_bar'].forEach(m => {
                 const el = document.getElementById(`pay-opt-${m}`);
                 if (!el) return;
                 const radio = el.querySelector('input[type="radio"]');
@@ -5170,7 +5463,7 @@
             updateBankModalUI();
             modal.classList.remove('hidden');
 
-            if (finalTotal === 0 || state.paymentMethod === 'card') {
+            if (finalTotal === 0 || state.paymentMethod === 'card' || state.paymentMethod === 'at_bar') {
                 completeKaspiPayment();
             } else {
                 kaspiBox.classList.remove('hidden');
@@ -5195,7 +5488,7 @@
 
             const summaryItems = state.cart.map(c => `${c.name} (${c.qty} шт)${c.mods.length ? ' [' + c.mods.join(', ') + ']' : ''}`);
             const shortItems = state.cart.map(c => c.qty > 1 ? `${c.name} ×${c.qty}` : c.name);
-            const arrivalInfo = state.orderTimingMode === 'remote' ? state.arrivalPreset : 'Сразу ~7 мин';
+            const arrivalInfo = (state.orderTimingMode === 'remote' || state.orderTimingMode === 'reserve') ? state.arrivalPreset : 'Сразу ~7 мин';
 
             const selectedBankName = (BANK_CONFIGS[state.paymentMethod] && BANK_CONFIGS[state.paymentMethod].name) || 'Kaspi Gold';
             const payTypeNote = (bonusDisc > 0 && finalTotal === 0)
