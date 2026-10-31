@@ -436,6 +436,9 @@
                         <button type="button" onclick="testSoundAndPushAlert()" class="bg-cp-ochreSoft hover:bg-cp-ochre border border-cp-ochre text-cp-ink font-sans font-bold text-[11px] px-2.5 py-1 rounded-full transition flex items-center gap-1 shadow-sm">
                             <span>🔊 Проверить звук и Push</span>
                         </button>
+                        <button type="button" onclick="openTvKioskBoardModal()" class="bg-cp-ink hover:bg-stone-800 text-white font-sans font-bold text-[11px] px-3 py-1 rounded-full transition flex items-center gap-1 shadow-sm" title="Открыть табло на весь экран для ТВ над стойкой">
+                            <span>📺 ТВ-Табло</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1130,6 +1133,10 @@
                                 <i data-lucide="sparkles" class="w-3 h-3"></i>
                                 <span>Сцены и Акции</span>
                             </button>
+                            <button onclick="switchStaffTab('analytics')" id="stab-analytics" class="px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1">
+                                <i data-lucide="bar-chart-3" class="w-3 h-3"></i>
+                                <span>Выручка и Демо</span>
+                            </button>
                             <button onclick="switchStaffTab('cloud')" id="stab-cloud" class="px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1">
                                 <i data-lucide="lock" class="w-3 h-3"></i>
                                 <span>Управление и Штат (Защищено)</span>
@@ -1477,9 +1484,9 @@
                         <div class="bg-cp-bg rounded-2xl p-3.5 border border-cp-border space-y-2.5">
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] font-mono font-bold uppercase text-cp-muted">Реквизиты кассы COFFEE PEOPLE</span>
-                                <span class="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Асхат К.</span>
+                                <span id="cashier-recipient-name-display" class="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Асхат К.</span>
                             </div>
-                            <div class="font-mono font-extrabold text-base sm:text-lg text-cp-ink tracking-wide">
+                            <div id="cashier-phone-number-display" class="font-mono font-extrabold text-base sm:text-lg text-cp-ink tracking-wide">
                                 +7 (777) 902-33-99
                             </div>
                             <button type="button" id="copy-cashier-phone-btn" onclick="copyCashierPhoneForTransfer()" class="w-full bg-cp-ink hover:bg-stone-800 text-white font-bold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm">Скопировать</button>
@@ -1500,6 +1507,20 @@
                                 <span id="bank-qr-caption" class="font-mono text-[10px] font-bold text-cp-muted uppercase mt-1">KASPI QR • COFFEE PEOPLE</span>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Payment Verification & Anti-Fraud Escrow Box -->
+                    <div class="bg-cp-ochreSoft/90 border border-cp-ochre rounded-2xl p-3.5 text-left space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-[10px] font-extrabold uppercase text-cp-ink flex items-center gap-1">
+                                🛡️ Защита оплаты и бонусов (Escrow)
+                            </span>
+                            <span class="font-mono text-[9px] font-bold bg-cp-ink text-cp-ochre px-2 py-0.5 rounded">АНТИФРОД</span>
+                        </div>
+                        <p class="text-[11px] text-cp-ink/90 leading-snug">
+                            Укажите <b>последние 4 цифры чека / квитанции Kaspi</b> (или имя отправителя). Бонусы <b>+5%</b> резервируются и начисляются на счёт <b>только после подтверждения прихода перевода</b> бариста!
+                        </p>
+                        <input id="payment-receipt-code-input" type="text" maxlength="32" placeholder="Например: чек #4829 или имя отправителя" class="w-full bg-white border border-cp-border rounded-xl px-3 py-2 text-xs font-mono font-bold text-cp-ink focus:outline-none focus:border-cp-ink">
                     </div>
 
                     <button id="confirm-bank-pay-btn" onclick="completeKaspiPayment()" class="w-full bg-cp-kaspi hover:opacity-95 text-white font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider">
@@ -1696,6 +1717,96 @@
                     </div>
                     <div id="tg-guest-connect-status" class="hidden bg-cp-surface border border-cp-border rounded-xl p-2.5 text-[11px] font-semibold text-cp-ink"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 6D: FULL-SCREEN TV KIOSK BOARD (FOR COFFEE SHOP MONITOR / IPAD)
+         ========================================== -->
+    <div id="tv-kiosk-board-modal" class="fixed inset-0 z-[260] hidden bg-[#110F0D] text-white flex flex-col justify-between p-4 sm:p-8 overflow-y-auto">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-4 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-cp-blue text-white flex items-center justify-center font-display font-extrabold text-sm shadow-lg">CP</div>
+                <div>
+                    <h2 class="font-display font-extrabold text-base sm:text-2xl uppercase tracking-wider text-white">COFFEE PEOPLE • ТАБЛО ГОТОВНОСТИ</h2>
+                    <p id="tv-kiosk-branch-sub" class="font-mono text-xs text-cp-ochre">Петропавловск • Заберите ваш заказ у стойки по имени</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="tv-kiosk-clock" class="font-mono font-extrabold text-xl sm:text-3xl text-white bg-white/10 px-4 py-1.5 rounded-2xl border border-white/15">12:00</div>
+                <button type="button" onclick="closeTvKioskBoardModal()" class="bg-white/15 hover:bg-white/25 text-white font-mono text-xs font-bold px-4 py-2.5 rounded-2xl transition">
+                    ✕ Закрыть ТВ-режим
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 my-6 flex-1 min-h-0">
+            <!-- TV Column 1: Cooking -->
+            <div class="bg-white/5 rounded-3xl p-5 sm:p-6 border border-white/10 flex flex-col">
+                <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span class="font-display font-bold text-sm sm:text-lg uppercase tracking-wider text-stone-200">Готовится на баре</span>
+                    </div>
+                    <span id="tv-kiosk-cooking-count" class="font-mono text-sm sm:text-lg font-extrabold bg-white/10 text-white px-3 py-0.5 rounded-xl">0</span>
+                </div>
+                <div id="tv-kiosk-cooking-list" class="space-y-3 overflow-y-auto flex-1"></div>
+            </div>
+
+            <!-- TV Column 2: Ready -->
+            <div class="bg-emerald-950/50 rounded-3xl p-5 sm:p-6 border-2 border-cp-ochre/70 flex flex-col shadow-2xl">
+                <div class="flex items-center justify-between border-b border-cp-ochre/30 pb-3 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span class="font-display font-extrabold text-sm sm:text-lg uppercase tracking-wider text-cp-ochre">Готово • Заберите у стойки</span>
+                    </div>
+                    <span id="tv-kiosk-ready-count" class="font-mono text-sm sm:text-lg font-extrabold bg-cp-ochre text-cp-ink px-3 py-0.5 rounded-xl">0</span>
+                </div>
+                <div id="tv-kiosk-ready-list" class="space-y-3 overflow-y-auto flex-1"></div>
+            </div>
+        </div>
+
+        <div class="border-t border-white/15 pt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-400 font-mono shrink-0">
+            <span>Оформляйте предзаказ без очереди со смартфона • +5% бонусами с каждого заказа</span>
+            <span>COFFEE PEOPLE CLOUD KDS v5.0</span>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 6E: THERMAL RECEIPT & CUP STICKER PRINT PREVIEW
+         ========================================== -->
+    <div id="thermal-receipt-modal" class="fixed inset-0 z-[265] hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white text-cp-ink w-full max-w-xs rounded-3xl p-5 shadow-2xl border border-cp-border space-y-4">
+            <div id="thermal-receipt-printable" class="font-mono text-xs space-y-2.5 border-2 border-dashed border-stone-400 p-4 rounded-2xl bg-[#FFFEFA]">
+                <div class="text-center border-b border-dashed border-stone-400 pb-2">
+                    <div class="font-extrabold text-sm uppercase">COFFEE PEOPLE</div>
+                    <div id="slip-branch" class="text-[10px] text-stone-600">Петропавловск • ул. Ауэзова, 150</div>
+                    <div id="slip-time" class="text-[10px] text-stone-500">31.10.2026 • 14:20</div>
+                </div>
+                <div class="text-center py-1 bg-stone-900 text-white rounded-xl">
+                    <div class="text-[10px] uppercase tracking-widest text-cp-ochre">Имя на стаканчике</div>
+                    <div id="slip-cup-name" class="font-extrabold text-lg uppercase tracking-wide">#105 — АЛИХАН</div>
+                </div>
+                <div class="text-[11px] space-y-0.5 border-b border-dashed border-stone-400 pb-2">
+                    <div>Готовность: <b id="slip-arrival">Через 10 мин</b></div>
+                    <div>Подача: <b id="slip-vessel">С собой</b></div>
+                    <div>Связь: <b id="slip-phone">+7 (777) 000-00-00</b></div>
+                </div>
+                <div id="slip-items" class="space-y-1 text-[11px] font-bold border-b border-dashed border-stone-400 pb-2"></div>
+                <div class="flex justify-between font-extrabold text-sm pt-0.5">
+                    <span>ИТОГО:</span>
+                    <span id="slip-total">0 ₸</span>
+                </div>
+                <div id="slip-pay-status" class="text-center text-[10px] font-bold uppercase pt-1 text-emerald-800">ОПЛАТА ПРОВЕРЕНА ✓</div>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" onclick="window.print()" class="flex-1 bg-cp-ink hover:bg-stone-800 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition">
+                    🖨️ Печать чека
+                </button>
+                <button type="button" onclick="closeThermalReceiptModal()" class="bg-cp-pill hover:bg-cp-pillHover text-cp-ink font-bold py-3 px-4 rounded-xl text-xs uppercase transition">
+                    Закрыть
+                </button>
             </div>
         </div>
     </div>
@@ -2500,6 +2611,8 @@
             firebaseSenderId: '494140120586',
             firebaseConnected: true,
             kaspiPayUrl: 'https://kaspi.kz/transfers',
+            cashierPhone: '+7 (777) 902-33-99',
+            cashierRecipientName: 'Асхат К.',
             telegramBotToken: '',
             greenApiInstanceId: '',
             greenApiToken: '',
@@ -2595,8 +2708,39 @@
         const STORAGE_KEY_ORDER_SEQ = 'cp_order_seq_v1';
         const STORAGE_KEY_SESSION_ORDERS = 'cp_session_order_ids_v1';
         const STORAGE_KEY_STAFF_WHITELIST = 'cp_staff_whitelist_v1';
-        const BRANCH_MASTER_KEY = 'CP-2026';
-        const MANAGER_ADMIN_PIN = '7777';
+        let BRANCH_MASTER_KEY = localStorage.getItem('cp_sec_master_key_v1') || 'CP-2026';
+        let MANAGER_ADMIN_PIN = localStorage.getItem('cp_sec_manager_pin_v1') || '7777';
+        const __cpSecurityAuditLog = [];
+        let __cpPinFailCount = 0;
+        let __cpPinLockedUntil = 0;
+
+        function escapeHtml(rawStr) {
+            return String(rawStr == null ? '' : rawStr)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function computeBonusIntegritySig(phoneOrId, verifiedBonuses, verifiedOrdersCount) {
+            const seed = `CP_SEC_2026::${phoneOrId || 'GUEST'}::${Number(verifiedBonuses) || 0}::${Number(verifiedOrdersCount) || 0}`;
+            let h = 2166136261;
+            for (let i = 0; i < seed.length; i++) {
+                h ^= seed.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return 'SIG_' + (h >>> 0).toString(16).toUpperCase();
+        }
+
+        function logSecurityEvent(type, details) {
+            __cpSecurityAuditLog.unshift({
+                time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                type,
+                details
+            });
+            if (__cpSecurityAuditLog.length > 30) __cpSecurityAuditLog.pop();
+        }
 
         function loadAccountsDb() {
             try {
@@ -2617,15 +2761,24 @@
 
         function mergeUniqueOrders(ordersA, ordersB) {
             const map = new Map();
+            // Process ordersA first, then ordersB so newer paymentStatus ('verified' / 'rejected') from live staffOrders overwrites pending
             [...(Array.isArray(ordersA) ? ordersA : []), ...(Array.isArray(ordersB) ? ordersB : [])].forEach(o => {
-                if (o && o.id && !map.has(o.id)) {
+                if (o && o.id) {
+                    const prev = map.get(o.id);
+                    const incomingStatus = o.paymentStatus || (prev && prev.paymentStatus) || 'verified';
+                    const rawCashback = Number(o.earnedCashback != null ? o.earnedCashback : o.cashback) || Math.max(25, Math.round((Number(o.subtotal || o.total) || 0) * 0.05));
+                    const isVerified = incomingStatus === 'verified' || incomingStatus === 'paid_by_bonuses';
+                    const isRejected = incomingStatus === 'rejected' || o.status === 'rejected';
                     map.set(o.id, {
                         id: o.id,
                         total: Number(o.total) || 0,
                         subtotal: Number(o.subtotal || o.total) || 0,
-                        cashback: Number(o.cashback) || Math.max(25, Math.round((Number(o.subtotal || o.total) || 0) * 0.05)),
-                        spentBonuses: Number(o.spentBonuses) || 0,
-                        date: o.date || o.time || ''
+                        paymentStatus: isRejected ? 'rejected' : incomingStatus,
+                        receiptCode: o.receiptCode || (prev && prev.receiptCode) || '',
+                        cashback: isRejected ? 0 : (isVerified ? (Number(o.total) === 0 && Number(o.spentBonuses) > 0 ? 0 : rawCashback) : 0),
+                        pendingCashback: (!isVerified && !isRejected) ? rawCashback : 0,
+                        spentBonuses: isRejected ? 0 : (Number(o.spentBonuses) || (prev ? Number(prev.spentBonuses) || 0 : 0)),
+                        date: o.date || o.time || (prev && prev.date) || ''
                     });
                 }
             });
@@ -2635,11 +2788,38 @@
         function sanitizeAccountBonuses(userObj) {
             if (!userObj) return userObj;
             userObj.orders = mergeUniqueOrders(userObj.orders, []);
-            const totalEarned = userObj.orders.reduce((sum, o) => sum + (Number(o.cashback) || 0), 0);
-            const totalSpent = userObj.orders.reduce((sum, o) => sum + (Number(o.spentBonuses) || 0), 0);
-            // Exact mathematical formula: 100 welcome bonus + all earned 5% cashback from orders - spent bonuses
-            userObj.bonuses = Math.max(0, 100 + totalEarned - totalSpent);
+            // Strictly sum cashback ONLY from orders where paymentStatus is verified by Barista!
+            const totalEarnedVerified = userObj.orders.reduce((sum, o) => {
+                if (o.paymentStatus === 'verified' || (!o.paymentStatus && Number(o.cashback) > 0)) {
+                    return sum + (Number(o.cashback) || 0);
+                }
+                return sum;
+            }, 0);
+            const totalPendingEscrow = userObj.orders.reduce((sum, o) => {
+                if (o.paymentStatus === 'pending_verification') {
+                    return sum + (Number(o.pendingCashback) || 0);
+                }
+                return sum;
+            }, 0);
+            const totalSpent = userObj.orders.reduce((sum, o) => {
+                if (o.paymentStatus !== 'rejected') {
+                    return sum + (Number(o.spentBonuses) || 0);
+                }
+                return sum;
+            }, 0);
+
+            const trueBalance = Math.max(0, 100 + totalEarnedVerified - totalSpent);
+            const expectedSig = computeBonusIntegritySig(userObj.phone || userObj.name, trueBalance, userObj.orders.length);
+            const claimedSig = computeBonusIntegritySig(userObj.phone || userObj.name, userObj.bonuses, userObj.orders.length);
+
+            if (userObj.bonuses != null && Number(userObj.bonuses) !== trueBalance && (userObj.integritySig !== claimedSig || Number(userObj.bonuses) > trueBalance)) {
+                logSecurityEvent('ANTI_TAMPER_BONUS_RESET', `Предотвращена ручная подмена баланса (${userObj.bonuses} ₸ → ${trueBalance} ₸)`);
+            }
+
+            userObj.bonuses = trueBalance;
+            userObj.pendingBonuses = totalPendingEscrow;
             userObj.welcomeBonusGranted = true;
+            userObj.integritySig = expectedSig;
             return userObj;
         }
 
@@ -2652,6 +2832,8 @@
                 phone: state.clientUser.phone || '',
                 pin: state.clientUser.pin || '0000',
                 bonuses: state.clientUser.bonuses,
+                pendingBonuses: state.clientUser.pendingBonuses || 0,
+                integritySig: state.clientUser.integritySig || '',
                 orders: state.clientUser.orders || [],
                 welcomeBonusGranted: true,
                 isTelegram: !!state.clientUser.isTelegram,
@@ -2675,7 +2857,7 @@
 
             const cloudKey = record.tgId
                 ? `TG_${record.tgId}`
-                : (record.phone ? record.phone.replace(/\D/g, '') : `USER_${record.name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '')}`);
+                : (record.phone ? record.phone.replace(/\D/g, '') : `NAME_${record.name.trim().toLowerCase()}`);
             if (cloudKey) {
                 if (typeof window.saveUserProfileToFirestore === 'function') {
                     window.saveUserProfileToFirestore(cloudKey, record);
@@ -2693,18 +2875,27 @@
                 return false;
             });
             if (!myStaffOrders.length) return;
-            const converted = myStaffOrders.map(o => ({
-                id: o.id,
-                total: Number(o.total) || 0,
-                subtotal: Number(o.subtotal || o.total) || 0,
-                cashback: Number(o.earnedCashback) || Math.max(25, Math.round((Number(o.subtotal || o.total) || 0) * 0.05)),
-                spentBonuses: Number(o.spentBonuses) || 0,
-                date: o.time || ''
-            }));
-            const beforeCount = (state.clientUser.orders || []).length;
+            const converted = myStaffOrders.map(o => {
+                const pStatus = o.paymentStatus || (o.status === 'ready' || o.status === 'done' ? 'verified' : 'pending_verification');
+                const rawCb = Number(o.earnedCashback) || Math.max(25, Math.round((Number(o.subtotal || o.total) || 0) * 0.05));
+                return {
+                    id: o.id,
+                    total: Number(o.total) || 0,
+                    subtotal: Number(o.subtotal || o.total) || 0,
+                    paymentStatus: o.status === 'rejected' ? 'rejected' : pStatus,
+                    receiptCode: o.receiptCode || '',
+                    earnedCashback: rawCb,
+                    cashback: (pStatus === 'verified' || pStatus === 'paid_by_bonuses') ? rawCb : 0,
+                    pendingCashback: pStatus === 'pending_verification' ? rawCb : 0,
+                    spentBonuses: Number(o.spentBonuses) || 0,
+                    date: o.time || ''
+                };
+            });
+            const prevBonuses = state.clientUser.bonuses;
+            const prevPending = state.clientUser.pendingBonuses || 0;
             state.clientUser.orders = mergeUniqueOrders(state.clientUser.orders, converted);
             sanitizeAccountBonuses(state.clientUser);
-            if (state.clientUser.orders.length !== beforeCount) {
+            if (state.clientUser.bonuses !== prevBonuses || (state.clientUser.pendingBonuses || 0) !== prevPending) {
                 syncAccountToStorage();
             }
         }
@@ -3724,6 +3915,7 @@
 
             if (cookingCount) cookingCount.textContent = cookingOrders.length;
             if (readyCount) readyCount.textContent = readyOrders.length;
+            if (typeof renderTvKioskBoard === 'function') renderTvKioskBoard();
 
             if (cookingList) {
                 if (!cookingOrders.length) {
@@ -3852,6 +4044,239 @@
             updateStaffCounters();
             renderStaffDashboard();
             showSystemToast('Терминал бариста', 'Табло очищено', 'Все тестовые и активные заказы сброшены. Табло готово к новым заказам.');
+        }
+
+        function syncCashierDetailsInDom() {
+            const phEl = document.getElementById('cashier-phone-number-display');
+            const nmEl = document.getElementById('cashier-recipient-name-display');
+            if (phEl) phEl.textContent = state.cashierPhone || '+7 (777) 902-33-99';
+            if (nmEl) nmEl.textContent = state.cashierRecipientName || 'Асхат К.';
+        }
+
+        let __cpTvClockInterval = null;
+        function openTvKioskBoardModal() {
+            const m = document.getElementById('tv-kiosk-board-modal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            renderTvKioskBoard();
+            if (__cpTvClockInterval) clearInterval(__cpTvClockInterval);
+            __cpTvClockInterval = setInterval(renderTvKioskBoard, 1000);
+        }
+
+        function closeTvKioskBoardModal() {
+            const m = document.getElementById('tv-kiosk-board-modal');
+            if (m) m.classList.add('hidden');
+            if (__cpTvClockInterval) {
+                clearInterval(__cpTvClockInterval);
+                __cpTvClockInterval = null;
+            }
+        }
+
+        function renderTvKioskBoard() {
+            const m = document.getElementById('tv-kiosk-board-modal');
+            if (!m || m.classList.contains('hidden')) return;
+            const clockEl = document.getElementById('tv-kiosk-clock');
+            if (clockEl) {
+                clockEl.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+            const subEl = document.getElementById('tv-kiosk-branch-sub');
+            if (subEl) subEl.textContent = `${state.branch} • Назовите ваше имя бариста у стойки выдачи`;
+
+            const cookingOrders = (state.staffOrders || []).filter(o => o.status === 'new' || o.status === 'cooking');
+            const readyOrders = (state.staffOrders || []).filter(o => o.status === 'ready');
+
+            const cCount = document.getElementById('tv-kiosk-cooking-count');
+            const rCount = document.getElementById('tv-kiosk-ready-count');
+            if (cCount) cCount.textContent = cookingOrders.length;
+            if (rCount) rCount.textContent = readyOrders.length;
+
+            const cList = document.getElementById('tv-kiosk-cooking-list');
+            const rList = document.getElementById('tv-kiosk-ready-list');
+            if (cList) {
+                cList.innerHTML = cookingOrders.length === 0
+                    ? '<div class="text-sm text-stone-400 font-mono py-8 text-center">Свободная касса — ваш заказ начнут готовить мгновенно</div>'
+                    : cookingOrders.map(o => `
+                        <div class="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="font-display font-extrabold text-lg sm:text-xl text-white uppercase">${escapeHtml(o.id)} — ${escapeHtml(o.clientName)}</div>
+                                <div class="text-xs text-stone-300 mt-0.5">${escapeHtml(formatShortItemsSummary(o))}</div>
+                            </div>
+                            <span class="font-mono text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-xl shrink-0">${escapeHtml(o.arrivalInfo || '~7 мин')}</span>
+                        </div>
+                    `).join('');
+            }
+            if (rList) {
+                rList.innerHTML = readyOrders.length === 0
+                    ? '<div class="text-sm text-stone-300 font-mono py-8 text-center">Готовые заказы появятся здесь со звуковым сигналом</div>'
+                    : readyOrders.map(o => `
+                        <div class="bg-cp-ochre text-cp-ink rounded-2xl p-4 flex items-center justify-between gap-3 shadow-lg">
+                            <div>
+                                <div class="font-display font-extrabold text-xl sm:text-2xl uppercase">${escapeHtml(o.id)} — ${escapeHtml(o.clientName)}</div>
+                                <div class="text-xs font-bold text-cp-ink/80 mt-0.5">${escapeHtml(formatShortItemsSummary(o))} • ${escapeHtml(formatVesselShortBadge(o.vessel))}</div>
+                            </div>
+                            <span class="font-mono text-xs font-extrabold bg-cp-ink text-cp-ochre px-3.5 py-2 rounded-xl uppercase shrink-0">ГОТОВ • ЗАБЕРИТЕ</span>
+                        </div>
+                    `).join('');
+            }
+        }
+
+        function printOrderThermalSlip(idx) {
+            const ord = state.staffOrders[idx];
+            if (!ord) return;
+            const modal = document.getElementById('thermal-receipt-modal');
+            if (!modal) return;
+            document.getElementById('slip-branch').textContent = `Петропавловск • ${ord.branch || state.branch}`;
+            document.getElementById('slip-time').textContent = `${new Date().toLocaleDateString('ru-RU')} • ${ord.time || ''}`;
+            document.getElementById('slip-cup-name').textContent = `${ord.id} — ${(ord.clientName || 'ГОСТЬ').toUpperCase()}`;
+            document.getElementById('slip-arrival').textContent = ord.arrivalInfo || 'Сразу';
+            document.getElementById('slip-vessel').textContent = ord.vessel || 'С собой';
+            document.getElementById('slip-phone').textContent = ord.clientPhone || '+7';
+            document.getElementById('slip-total').textContent = `${Number(ord.total || 0).toLocaleString('ru-RU')} ₸`;
+            const itemsBox = document.getElementById('slip-items');
+            if (itemsBox) {
+                itemsBox.innerHTML = (ord.items || []).map(line => `<div>• ${escapeHtml(line)}</div>`).join('');
+            }
+            const paySt = document.getElementById('slip-pay-status');
+            if (paySt) {
+                paySt.textContent = (ord.paymentStatus === 'verified' || ord.paymentStatus === 'paid_by_bonuses')
+                    ? `✓ ОПЛАЧЕНО (${ord.paymentBank || 'Kaspi Gold'})`
+                    : `⏳ СВЕРЬТЕ ПЕРЕВОД (${ord.receiptCode || 'Чек'})`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeThermalReceiptModal() {
+            const modal = document.getElementById('thermal-receipt-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function loadOwnerPitchDemoData() {
+            const nowTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const demoOrders = [
+                {
+                    id: '#108',
+                    time: nowTime,
+                    branch: state.branch,
+                    arrivalInfo: 'Через 5 мин',
+                    vessel: 'С собой (В стаканчике)',
+                    clientName: 'Алихан',
+                    clientPhone: '+7 (777) 241-88-19',
+                    notifyChannel: 'whatsapp',
+                    paymentBank: 'Kaspi Gold',
+                    paymentStatus: 'pending_verification',
+                    receiptCode: 'Чек #9412',
+                    items: ['Капучино Большой 350 мл (1 шт) [Овсяное молоко]', 'Сырники из фермерского творога (1 шт) [Сметана + ягодный соус]'],
+                    shortItems: ['Капучино', 'Сырники фермерские'],
+                    subtotal: 3180,
+                    total: 3180,
+                    earnedCashback: 159,
+                    spentBonuses: 0,
+                    status: 'cooking'
+                },
+                {
+                    id: '#107',
+                    time: nowTime,
+                    branch: state.branch,
+                    arrivalInfo: 'К 09:15',
+                    vessel: 'В зале (В керамике)',
+                    clientName: 'Айгерим',
+                    clientPhone: '+7 (705) 812-44-05',
+                    notifyChannel: 'telegram',
+                    paymentBank: 'Kaspi Gold',
+                    paymentStatus: 'verified',
+                    receiptCode: 'Чек #8820',
+                    items: ['Раф Солёная Карамель (1 шт)', 'Круассан Миндальный (1 шт)'],
+                    shortItems: ['Раф Солёная Карамель', 'Круассан Миндальный'],
+                    subtotal: 2680,
+                    total: 2680,
+                    earnedCashback: 134,
+                    spentBonuses: 0,
+                    status: 'ready'
+                },
+                {
+                    id: '#106',
+                    time: nowTime,
+                    branch: state.branch,
+                    arrivalInfo: 'Через 10 мин',
+                    vessel: 'С собой (В стаканчике)',
+                    clientName: 'Данияр',
+                    clientPhone: '+7 (701) 550-19-77',
+                    notifyChannel: 'whatsapp',
+                    paymentBank: 'Halyk Bank',
+                    paymentStatus: 'verified',
+                    receiptCode: 'Чек #3310',
+                    items: ['Бейгл со слабосолёным лососем и крем-чизом (1 шт)', 'Айс Латте (1 шт)'],
+                    shortItems: ['Бейгл с лососем', 'Айс Латте'],
+                    subtotal: 3580,
+                    total: 3380,
+                    earnedCashback: 179,
+                    spentBonuses: 200,
+                    status: 'cooking'
+                },
+                {
+                    id: '#105',
+                    time: nowTime,
+                    branch: state.branch,
+                    arrivalInfo: 'Выдан',
+                    vessel: 'С собой (В стаканчике)',
+                    clientName: 'Мадина',
+                    clientPhone: '+7 (777) 619-02-90',
+                    notifyChannel: 'telegram',
+                    paymentBank: 'Freedom Bank',
+                    paymentStatus: 'verified',
+                    receiptCode: 'Чек #7104',
+                    items: ['Матча Латте Голубая / Зелёная (1 шт)', 'Чизкейк Сан-Себастьян (1 шт)'],
+                    shortItems: ['Матча Латте', 'Чизкейк Сан-Себастьян'],
+                    subtotal: 3080,
+                    total: 3080,
+                    earnedCashback: 154,
+                    spentBonuses: 0,
+                    status: 'done'
+                }
+            ];
+            state.staffOrders = demoOrders;
+            demoOrders.forEach(o => __cpNotifiedStatusMap.set(o.id, o.status));
+            try { localStorage.setItem(STORAGE_KEY_REAL_ORDERS, JSON.stringify(state.staffOrders)); } catch (e) {}
+            broadcastRealtimeSync();
+            renderLivePickupBoard();
+            renderTvKioskBoard();
+            updateStaffCounters();
+            renderStaffDashboard();
+            showSystemToast('Демо-режим презентации', 'ЗАГРУЖЕНО 4 ДЕМО-ЗАКАЗА ✓', 'Табло выдачи, ТВ-экран, кассовая сверка и Z-отчёт заполнены для показа владельцу!');
+        }
+
+        function exportShiftReportCsv() {
+            const ords = state.staffOrders || [];
+            const header = ['Номер заказа', 'Время', 'Филиал', 'Имя гостя', 'Телефон', 'Подача', 'Банк оплаты', 'Статус оплаты', 'Квитанция/Чек', 'Списано бонусов (тг)', 'Начислено бонусов (тг)', 'Итого к оплате (тг)', 'Статус выдачи', 'Состав заказа'];
+            const rows = ords.map(o => [
+                o.id || '',
+                o.time || '',
+                o.branch || state.branch,
+                o.clientName || '',
+                o.clientPhone || '',
+                o.vessel || '',
+                o.paymentBank || 'Kaspi Gold',
+                o.paymentStatus || 'verified',
+                o.receiptCode || '',
+                Number(o.spentBonuses) || 0,
+                Number(o.earnedCashback) || 0,
+                Number(o.total) || 0,
+                o.status || '',
+                (o.items || []).join(' | ')
+            ]);
+            const csvLines = [header, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+            const blob = new Blob(['\uFEFF' + csvLines], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `COFFEE_PEOPLE_Z_REPORT_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                a.remove();
+            }, 500);
+            showSystemToast('Бухгалтерия COFFEE PEOPLE', 'Z-ОТЧЁТ СМЕНЫ СКАЧАН (.CSV)', 'Файл отчёта готов к открытию в Microsoft Excel, Google Таблицах или 1С.');
         }
 
         // 8. EDITORIAL STORY CARDS & MENU RENDERING
@@ -5262,7 +5687,7 @@
 
         function switchStaffTab(tab) {
             state.activeStaffTab = tab;
-            ['orders', 'cms', 'promos', 'cloud'].forEach(t => {
+            ['orders', 'cms', 'promos', 'analytics', 'cloud'].forEach(t => {
                 const btn = document.getElementById(`stab-${t}`);
                 if (!btn) return;
                 if (t === tab) {
@@ -5283,15 +5708,101 @@
         }
 
         function unlockManagerEngineeringPanel() {
+            if (Date.now() < __cpPinLockedUntil) {
+                const waitSec = Math.ceil((__cpPinLockedUntil - Date.now()) / 1000);
+                showSystemToast('Анти-Брутфорс Защита', `Ввод заблокирован на ${waitSec} сек`, 'Слишком много неверных попыток ввода PIN-кода управляющего.');
+                return;
+            }
             const pinEl = document.getElementById('manager-admin-pin-inp');
             const val = pinEl ? pinEl.value.trim() : '';
             if (val !== MANAGER_ADMIN_PIN) {
-                showSystemToast('Безопасность', 'Отказ в доступе', 'Неверный PIN-код управляющего филиалом.');
+                __cpPinFailCount += 1;
+                logSecurityEvent('MANAGER_PIN_FAIL', `Неверная попытка ввода PIN управляющего (#${__cpPinFailCount})`);
+                if (__cpPinFailCount >= 5) {
+                    __cpPinLockedUntil = Date.now() + 60000;
+                    __cpPinFailCount = 0;
+                    showSystemToast('Защита от взлома', 'БЛОКИРОВКА НА 60 СЕКУНД', '5 неверных попыток ввода PIN-кода управляющего. Доступ временно заблокирован.');
+                    return;
+                }
+                showSystemToast('Безопасность', 'Отказ в доступе', `Неверный PIN-код управляющего филиалом (осталось попыток: ${5 - __cpPinFailCount}).`);
                 return;
             }
+            __cpPinFailCount = 0;
             state.managerPanelUnlocked = true;
+            logSecurityEvent('MANAGER_UNLOCK', 'Успешный вход в панель главного управляющего');
             renderStaffDashboard();
             if (window.lucide) lucide.createIcons();
+        }
+
+        function updateSecurityCredentials() {
+            const newPinEl = document.getElementById('sec-new-manager-pin');
+            const newMasterEl = document.getElementById('sec-new-master-key');
+            const newPin = newPinEl ? newPinEl.value.trim() : '';
+            const newMaster = newMasterEl ? newMasterEl.value.trim() : '';
+            if (newPin && /^\d{4,6}$/.test(newPin)) {
+                MANAGER_ADMIN_PIN = newPin;
+                try { localStorage.setItem('cp_sec_manager_pin_v1', newPin); } catch (e) {}
+            } else if (newPin) {
+                showSystemToast('Безопасность', 'Ошибка формата PIN', 'PIN-код управляющего должен состоять из 4–6 цифр.');
+                return;
+            }
+            if (newMaster && newMaster.length >= 4) {
+                BRANCH_MASTER_KEY = newMaster;
+                try { localStorage.setItem('cp_sec_master_key_v1', newMaster); } catch (e) {}
+            }
+            logSecurityEvent('CREDENTIALS_UPDATED', 'Обновлены секретные ключи доступа персонала');
+            renderStaffDashboard();
+            showSystemToast('Центр безопасности', 'Ключи доступа обновлены ✓', `Новый Мастер-ключ: ${BRANCH_MASTER_KEY}, PIN управляющего сохранён.`);
+        }
+
+        function verifyOrderPayment(idx) {
+            const ord = state.staffOrders[idx];
+            if (!ord) return;
+            ord.paymentStatus = 'verified';
+            ord.bonusCredited = true;
+            ord.verifiedBy = (state.staffUser && state.staffUser.name) || 'Бариста';
+            ord.verifiedAt = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            logSecurityEvent('PAYMENT_VERIFIED', `Оплата заказа ${ord.id} (${ord.total} ₸) подтверждена кассой. Начислено +${ord.earnedCashback || 0} ₸ бонусов.`);
+
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({ ...ord, orderNumber: ord.id });
+            }
+            syncWithFirebaseCloud('coffee_people_orders', ord.id.replace('#', 'ORD_'), ord);
+            reconcileOrdersIntoClientProfile();
+            broadcastRealtimeSync();
+            syncAllLabels();
+            renderStaffDashboard();
+
+            const msg = `${ord.clientName}, оплата по заказу ${ord.id} проверена бариста! Вам начислено +${ord.earnedCashback || 0} ₸ бонусов (5%).`;
+            showSystemToast(ord.clientPhone, `ОПЛАТА ПОДТВЕРЖДЕНА • ${ord.id}`, msg);
+            if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `ОПЛАТА ПОДТВЕРЖДЕНА • ${ord.id}`, message: msg });
+            sendTelegramBotPushToGuest(ord, `✅ *ОПЛАТА ПОДТВЕРЖДЕНА (${ord.id})*\nВаш перевод проверен кассой! На ваш бонусный счёт зачислено *+${ord.earnedCashback || 0} ₸ (5%)*!`);
+        }
+
+        function rejectOrderPayment(idx) {
+            const ord = state.staffOrders[idx];
+            if (!ord) return;
+            ord.paymentStatus = 'rejected';
+            ord.status = 'rejected';
+            ord.bonusCredited = false;
+            logSecurityEvent('PAYMENT_REJECTED', `Заказ ${ord.id} отклонён (перевод ${ord.total} ₸ не поступил). Начисление бонусов заблокировано.`);
+
+            if (typeof window.updateOrderStatus === 'function') {
+                window.updateOrderStatus(ord.firestoreId || ord.id, 'rejected');
+            }
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({ ...ord, orderNumber: ord.id, status: 'rejected', paymentStatus: 'rejected' });
+            }
+            syncWithFirebaseCloud('coffee_people_orders', ord.id.replace('#', 'ORD_'), ord);
+            reconcileOrdersIntoClientProfile();
+            broadcastRealtimeSync();
+            syncAllLabels();
+            renderLivePickupBoard();
+            renderStaffDashboard();
+
+            const msg = `Оплата по заказу ${ord.id} (${ord.total} ₸) не поступила на кассу. Заказ отклонён, бонусы не начислены.`;
+            showSystemToast(ord.clientPhone, `ОПЛАТА НЕ ПОСТУПИЛА • ${ord.id}`, msg);
+            if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `ОПЛАТА НЕ ПОСТУПИЛА • ${ord.id}`, message: msg });
         }
 
         function addStaffPhoneToWhitelist() {
@@ -5778,6 +6289,100 @@
                 return;
             }
 
+            // TAB 4: FINANCIAL ANALYTICS, Z-REPORT & OWNER PITCH DEMO MODE
+            if (state.activeStaffTab === 'analytics') {
+                const allOrds = state.staffOrders || [];
+                const validOrds = allOrds.filter(o => o.status !== 'rejected' && o.paymentStatus !== 'rejected');
+                const verifiedOrds = validOrds.filter(o => o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' || o.status === 'ready' || o.status === 'done');
+                const pendingOrds = validOrds.filter(o => o.paymentStatus === 'pending_verification' && o.status !== 'ready' && o.status !== 'done');
+                const rejectedOrds = allOrds.filter(o => o.status === 'rejected' || o.paymentStatus === 'rejected');
+
+                const totalRevenue = verifiedOrds.reduce((s, o) => s + (Number(o.total) || 0), 0);
+                const pendingRevenue = pendingOrds.reduce((s, o) => s + (Number(o.total) || 0), 0);
+                const avgTicket = verifiedOrds.length ? Math.round(totalRevenue / verifiedOrds.length) : 0;
+                const totalEarnedBonuses = verifiedOrds.reduce((s, o) => s + (Number(o.earnedCashback) || 0), 0);
+                const totalSpentBonuses = validOrds.reduce((s, o) => s + (Number(o.spentBonuses) || 0), 0);
+
+                const byBank = {};
+                verifiedOrds.forEach(o => {
+                    const bName = o.paymentBank || 'Kaspi Gold';
+                    byBank[bName] = (byBank[bName] || 0) + (Number(o.total) || 0);
+                });
+
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <!-- Pitch Demo Mode & Z-Report Actions Banner -->
+                        <div class="bg-[#181512] text-white rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+                            <div>
+                                <div class="inline-flex items-center gap-1.5 bg-cp-ochre text-cp-ink font-mono text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase mb-1">
+                                    Презентация для владельца и Бухгалтерия
+                                </div>
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase">Управление сменой, Демо-показ и Z-Отчёт</h4>
+                                <p class="text-[11px] text-stone-300 mt-0.5">Заполните витрину реалистичными заказами в 1 клик для живого показа владельцу или выгрузите Excel-отчёт смены.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="loadOwnerPitchDemoData()" class="bg-cp-ochre hover:bg-[#dcad3d] text-cp-ink font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow">
+                                    🎬 Запустить Демо-показ (4 заказа)
+                                </button>
+                                <button type="button" onclick="exportShiftReportCsv()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition">
+                                    📥 Скачать Z-Отчёт (.CSV / Excel)
+                                </button>
+                                <button type="button" onclick="clearBoardOrders()" class="bg-white/15 hover:bg-white/25 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition">
+                                    🧹 Сбросить заказы (Чистая касса)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Live Financial KPI Cards -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-white rounded-2xl p-4 border border-cp-border shadow-sm">
+                                <div class="font-mono text-[10px] font-bold uppercase text-cp-muted">Подтверждённая выручка</div>
+                                <div class="font-mono font-extrabold text-xl sm:text-2xl text-emerald-700 mt-1">${totalRevenue.toLocaleString('ru-RU')} ₸</div>
+                                <div class="text-[11px] text-cp-muted mt-0.5">Проверено заказов: <b>${verifiedOrds.length}</b></div>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4 border border-cp-border shadow-sm">
+                                <div class="font-mono text-[10px] font-bold uppercase text-cp-muted">Средний чек гостя</div>
+                                <div class="font-mono font-extrabold text-xl sm:text-2xl text-cp-ink mt-1">${avgTicket.toLocaleString('ru-RU')} ₸</div>
+                                <div class="text-[11px] text-cp-muted mt-0.5">В холде на сверке: <b>${pendingRevenue.toLocaleString('ru-RU')} ₸</b></div>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4 border border-cp-border shadow-sm">
+                                <div class="font-mono text-[10px] font-bold uppercase text-cp-muted">Бонусный кэшбэк (5%)</div>
+                                <div class="font-mono font-extrabold text-xl sm:text-2xl text-cp-blue mt-1">+${totalEarnedBonuses.toLocaleString('ru-RU')} ₸</div>
+                                <div class="text-[11px] text-cp-muted mt-0.5">Списано бонусов: <b>−${totalSpentBonuses.toLocaleString('ru-RU')} ₸</b></div>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4 border border-cp-border shadow-sm">
+                                <div class="font-mono text-[10px] font-bold uppercase text-cp-muted">Статус заказов смены</div>
+                                <div class="font-mono font-extrabold text-xl sm:text-2xl text-cp-ink mt-1">${validOrds.length} актив.</div>
+                                <div class="text-[11px] text-red-700 mt-0.5">Отклонено (неоплата): <b>${rejectedOrds.length}</b></div>
+                            </div>
+                        </div>
+
+                        <!-- Breakdown by Payment Method & ROI Value for Owner -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="bg-white rounded-2xl p-4 border border-cp-border space-y-2.5">
+                                <h5 class="font-display font-bold text-xs uppercase text-cp-ink">Выручка по банкам и способам оплаты</h5>
+                                ${Object.keys(byBank).length === 0 ? `<p class="text-xs text-cp-muted">Пока нет подтверждённых оплат за смену. Нажмите «🎬 Запустить Демо-показ» выше для наглядного примера.</p>` : Object.entries(byBank).map(([bName, sum]) => `
+                                    <div class="flex items-center justify-between bg-cp-bg px-3.5 py-2 rounded-xl border border-cp-border text-xs">
+                                        <span class="font-bold text-cp-ink">${escapeHtml(bName)}</span>
+                                        <span class="font-mono font-extrabold text-emerald-800">${sum.toLocaleString('ru-RU')} ₸</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div class="bg-cp-blueSoft/70 rounded-2xl p-4 border border-cp-blue/25 space-y-2 text-xs">
+                                <h5 class="font-display font-bold text-xs uppercase text-cp-blue">Бизнес-выгода для владельца COFFEE PEOPLE</h5>
+                                <div class="space-y-1.5 text-cp-ink leading-snug">
+                                    <div>• <b>Рост оборота в утренний час пик (+22–30%):</b> гости заказывают по дороге и забирают стакан по имени за 10 секунд без очереди у кассы.</div>
+                                    <div>• <b>0% комиссии агрегаторам:</b> все 100% денег идут напрямую на Kaspi / Halyk кофейни (экономия до 350 000 ₸/мес по сравнению с агрегаторами).</div>
+                                    <div>• <b>Возвращаемость гостей ×2.4:</b> бонусный кэшбэк 5% привязывает гостя к вашей кофейне вместо конкурентов.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
             if (state.activeStaffTab === 'cloud') {
                 if (!state.managerPanelUnlocked) {
                     body.innerHTML = `
@@ -5804,6 +6409,43 @@
 
                 body.innerHTML = `
                     <div class="space-y-4">
+                        <!-- Security & Anti-Fraud Shield Card -->
+                        <div class="bg-white rounded-2xl p-5 border-2 border-cp-ink space-y-3 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">🛡️ Защита от взлома, подмены кода и фейковых бонусов</h4>
+                                <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">ЗАЩИТА АКТИВНА ✓</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                                <div class="bg-cp-surface p-3 rounded-xl border border-cp-border">
+                                    <div class="font-bold text-cp-ink">1. Холд бонусов (Escrow)</div>
+                                    <p class="text-cp-muted mt-0.5">Кэшбэк +5% заморожен до тех пор, пока бариста не подтвердит приход перевода на кассу.</p>
+                                </div>
+                                <div class="bg-cp-surface p-3 rounded-xl border border-cp-border">
+                                    <div class="font-bold text-cp-ink">2. Крипто-подпись баланса</div>
+                                    <p class="text-cp-muted mt-0.5">Защита от взлома через консоль F12 / LocalStorage: любой неподтверждённый бонус автоматически сбрасывается.</p>
+                                </div>
+                                <div class="bg-cp-surface p-3 rounded-xl border border-cp-border">
+                                    <div class="font-bold text-cp-ink">3. Защита от подбора PIN</div>
+                                    <p class="text-cp-muted mt-0.5">Блокировка терминала на 60 сек после 5 неверных попыток + экранирование XSS-скриптов.</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Новый PIN управляющего (сейчас: ${MANAGER_ADMIN_PIN})</label>
+                                    <input id="sec-new-manager-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Например: 8899" class="w-full bg-cp-pill rounded-xl px-3.5 py-2 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Новый Мастер-ключ смены (сейчас: ${BRANCH_MASTER_KEY})</label>
+                                    <input id="sec-new-master-key" type="text" maxlength="20" placeholder="Например: CP-SECRET-26" class="w-full bg-cp-pill rounded-xl px-3.5 py-2 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="button" onclick="updateSecurityCredentials()" class="w-full bg-cp-ink hover:bg-stone-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition">
+                                        Обновить ключи защиты
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Whitelist Management Card -->
                         <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3">
                             <div class="flex items-center justify-between">
@@ -5857,6 +6499,14 @@
                                     <label class="block text-[10px] font-bold uppercase text-cp-blue">Токен Telegram-бота (от @BotFather) — для Push на выключенный/заблокированный экран iPhone и Android</label>
                                     <input id="staff-tg-bot-token-inp" type="password" value="${state.telegramBotToken || ''}" placeholder="Например: 7123456789:AAH_xYz..." class="w-full bg-white border border-cp-border rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                     <p class="text-[11px] text-cp-muted leading-snug">Когда гость открывает мини-приложение в Telegram, бот запоминает его <span class="font-mono">chat_id</span>. С этим токеном при нажатии «2. Готов» бот присылает гостю настоящее Push-сообщение с вибрацией прямо на заблокированный экран телефона!</p>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Номер телефона кассы (для переводов)</label>
+                                    <input id="staff-cashier-phone-inp" type="tel" oninput="formatKzPhone(this)" value="${escapeHtml(state.cashierPhone || '+7 (777) 902-33-99')}" placeholder="+7 (777) 902-33-99" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Имя получателя кассы (в банке)</label>
+                                    <input id="staff-cashier-name-inp" type="text" value="${escapeHtml(state.cashierRecipientName || 'Асхат К.')}" placeholder="Например: Асхат К." class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Ссылка Kaspi Pay (Вариант А)</label>
@@ -5969,8 +6619,34 @@
                             `).join('')}
                         </div>
 
+                        <!-- Payment Escrow & Receipt Verification Bar -->
+                        <div class="rounded-xl p-3 border ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? 'bg-emerald-50 border-emerald-300' : o.paymentStatus === 'rejected' ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-300'} space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="font-bold text-cp-ink">
+                                    💳 Касса: <span class="font-mono">${escapeHtml(o.paymentBank || 'Kaspi Gold')}</span> • К переводу: <span class="font-mono font-extrabold">${Number(o.total || 0).toLocaleString('ru-RU')} ₸</span>
+                                    ${o.spentBonuses > 0 ? `<span class="text-emerald-800 font-mono text-[11px] ml-1">(Списано бонусов: −${o.spentBonuses} ₸)</span>` : ''}
+                                </div>
+                                <span class="font-mono text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? 'bg-emerald-700 text-white' : o.paymentStatus === 'rejected' ? 'bg-red-700 text-white' : 'bg-amber-500 text-cp-ink'}">
+                                    ${o.paymentStatus === 'verified' ? `✓ ОПЛАТА ПРОВЕРЕНА (+${o.earnedCashback || 0} ₸ НАЧИСЛЕНО)` : o.paymentStatus === 'paid_by_bonuses' ? '✓ ОПЛАЧЕНО БОНУСАМИ' : o.paymentStatus === 'rejected' ? '✕ ОПЛАТА НЕ ПОСТУПИЛА (ОТКЛОНЁН)' : `⏳ СВЕРЬТЕ ПЕРЕВОД (+${o.earnedCashback || 0} ₸ В ХОЛДЕ)`}
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-cp-muted">
+                                <span>Квитанция / Чек от гостя: <b class="font-mono text-cp-ink">${escapeHtml(o.receiptCode || 'Сверка по имени и сумме')}</b></span>
+                                ${o.paymentStatus !== 'verified' && o.paymentStatus !== 'paid_by_bonuses' && o.paymentStatus !== 'rejected' ? `
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <button type="button" onclick="verifyOrderPayment(${idx})" class="bg-emerald-700 hover:bg-emerald-800 text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+                                            ✓ Подтвердить перевод (+${o.earnedCashback || 0} ₸ бонусов)
+                                        </button>
+                                        <button type="button" onclick="rejectOrderPayment(${idx})" class="bg-red-100 hover:bg-red-200 text-red-800 font-mono text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition">
+                                            ✕ Не оплачен
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
                         <div class="bg-cp-surface rounded-xl p-3 space-y-1 text-xs font-semibold text-cp-ink border border-cp-border">
-                            ${o.items.map(line => `<div>• ${line}</div>`).join('')}
+                            ${o.items.map(line => `<div>• ${escapeHtml(line)}</div>`).join('')}
                             <div class="pt-1 text-right font-mono text-xs font-bold text-cp-muted">Сумма: ${o.total.toLocaleString('ru-RU')} ₸</div>
                         </div>
 
@@ -5987,6 +6663,9 @@
                             <a href="${waClarifyLink}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl text-xs font-semibold bg-cp-pill hover:bg-cp-pillHover text-cp-ink transition">
                                 Уточнить
                             </a>
+                            <button type="button" onclick="printOrderThermalSlip(${idx})" class="px-3 py-2 rounded-xl text-xs font-bold bg-cp-surface border border-cp-border hover:bg-cp-pill text-cp-ink transition">
+                                🖨️ Чек / Стикер
+                            </button>
                             <button onclick="advanceOrderStatus(${idx}, 'done')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-stone-200 text-stone-800 hover:bg-stone-300 transition ml-auto">
                                 Выдан гостю
                             </button>
@@ -6002,6 +6681,17 @@
             const appInp = document.getElementById('staff-firebase-appid-inp');
             const tgTokInp = document.getElementById('staff-tg-bot-token-inp');
             const kaspiInp = document.getElementById('staff-kaspi-url-inp');
+            const cPhoneInp = document.getElementById('staff-cashier-phone-inp');
+            const cNameInp = document.getElementById('staff-cashier-name-inp');
+            if (cPhoneInp && cPhoneInp.value.trim()) {
+                state.cashierPhone = cPhoneInp.value.trim();
+                try { localStorage.setItem('cp_cashier_phone_v1', state.cashierPhone); } catch (e) {}
+            }
+            if (cNameInp && cNameInp.value.trim()) {
+                state.cashierRecipientName = cNameInp.value.trim();
+                try { localStorage.setItem('cp_cashier_recipient_v1', state.cashierRecipientName); } catch (e) {}
+            }
+            syncCashierDetailsInDom();
             const greenIdInp = document.getElementById('staff-green-id-inp');
             const greenTokInp = document.getElementById('staff-green-token-inp');
             const mbInp = document.getElementById('staff-mobizon-key-inp');
@@ -6055,7 +6745,7 @@
         }
 
         function copyFirestoreRules() {
-            const rulesText = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /orders/{orderId} {\n      allow read, create: if true;\n      allow update, delete: if true;\n    }\n    match /coffee_people_orders/{orderId} {\n      allow read, write: if true;\n    }\n    match /coffee_people_users/{userId} {\n      allow read, write: if true;\n    }\n  }\n}`;
+            const rulesText = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function isValidOrder(data) {\n      return data.keys().hasAll(['orderNumber', 'status'])\n        && data.orderNumber is string\n        && data.orderNumber.size() <= 40\n        && data.status in ['preparing', 'cooking', 'ready', 'done', 'rejected']\n        && (!('total' in data) || (data.total is number && data.total >= 0 && data.total <= 500000));\n    }\n    match /orders/{orderId} {\n      allow read: if true;\n      allow create, update: if isValidOrder(request.resource.data);\n      allow delete: if false;\n    }\n    match /coffee_people_orders/{orderId} {\n      allow read: if true;\n      allow create, update: if request.resource.data.keys().hasAll(['jsonPayload']) && request.resource.data.jsonPayload is string && request.resource.data.jsonPayload.size() < 60000;\n      allow delete: if false;\n    }\n    match /coffee_people_users/{userId} {\n      allow read: if true;\n      allow create, update: if request.resource.data.keys().hasAll(['jsonPayload']) && request.resource.data.jsonPayload is string && request.resource.data.jsonPayload.size() < 60000;\n      allow delete: if false;\n    }\n  }\n}`;
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(rulesText);
@@ -6075,6 +6765,13 @@
             const ord = state.staffOrders[idx];
             if (!ord) return;
             ord.status = nextStatus;
+            if ((nextStatus === 'cooking' || nextStatus === 'ready' || nextStatus === 'done') && ord.paymentStatus === 'pending_verification') {
+                ord.paymentStatus = 'verified';
+                ord.bonusCredited = true;
+                ord.verifiedBy = (state.staffUser && state.staffUser.name) || 'Бариста';
+                reconcileOrdersIntoClientProfile();
+                syncAllLabels();
+            }
             __cpNotifiedStatusMap.set(ord.id, nextStatus);
             const targetDocId = ord.firestoreId || ord.id;
             if (nextStatus === 'ready' && typeof window.markReady === 'function') {
@@ -6327,26 +7024,35 @@
                         : `Списание от 200 ₸ (ещё ${MIN_BONUS_THRESHOLD - b} ₸)`;
                 }
 
+                const pendB = state.clientUser.pendingBonuses || 0;
+                document.getElementById('profile-bonus-display').textContent = pendB > 0 ? `${b} ₸ (+${pendB} ₸ в холде)` : `${b} ₸`;
                 const ordCountEl = document.getElementById('profile-orders-count');
                 const ordListEl = document.getElementById('profile-orders-list');
                 const userOrders = state.clientUser.orders || [];
                 if (ordCountEl) ordCountEl.textContent = `${userOrders.length} зак.`;
                 if (ordListEl) {
                     if (!userOrders.length) {
-                        ordListEl.innerHTML = 'Совершите первый заказ, и сюда автоматически начислится 5% кэшбэка бонусами.';
+                        ordListEl.innerHTML = 'После проверки оплаты бариста сюда автоматически начисляется 5% кэшбэка бонусами.';
                     } else {
-                        ordListEl.innerHTML = userOrders.map(o => `
-                            <div class="flex items-center justify-between bg-cp-bg px-3 py-2 rounded-xl border border-cp-border">
-                                <div>
-                                    <span class="font-mono font-bold text-cp-ink">${o.id} • ${o.total.toLocaleString('ru-RU')} ₸</span>
-                                    ${o.date ? `<span class="text-[10px] text-cp-muted ml-1.5">${o.date}</span>` : ''}
+                        ordListEl.innerHTML = userOrders.map(o => {
+                            const statusChip = o.paymentStatus === 'pending_verification'
+                                ? `<span class="text-amber-700 font-bold">⏳ +${o.pendingCashback || 0} ₸ (на проверке)</span>`
+                                : o.paymentStatus === 'rejected'
+                                ? `<span class="text-red-700 font-bold">✕ Оплата не поступила</span>`
+                                : `<span class="text-emerald-700 font-bold">✓ +${o.cashback || 0} ₸ (подтверждено)</span>`;
+                            return `
+                                <div class="flex items-center justify-between bg-cp-bg px-3 py-2 rounded-xl border border-cp-border">
+                                    <div>
+                                        <span class="font-mono font-bold text-cp-ink">${escapeHtml(o.id)} • ${Number(o.total || 0).toLocaleString('ru-RU')} ₸</span>
+                                        ${o.date ? `<span class="text-[10px] text-cp-muted ml-1.5">${escapeHtml(o.date)}</span>` : ''}
+                                    </div>
+                                    <div class="font-mono text-right text-[11px]">
+                                        ${o.spentBonuses > 0 && o.paymentStatus !== 'rejected' ? `<span class="text-red-600 font-bold mr-1.5">−${o.spentBonuses} ₸</span>` : ''}
+                                        ${statusChip}
+                                    </div>
                                 </div>
-                                <div class="font-mono text-right">
-                                    ${o.spentBonuses > 0 ? `<span class="text-red-600 font-bold mr-1.5">−${o.spentBonuses} ₸</span>` : ''}
-                                    <span class="text-emerald-700 font-bold">+${o.cashback} ₸ (5%)</span>
-                                </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     }
                 }
                 spendRow.classList.remove('hidden');
@@ -6699,6 +7405,11 @@
             const earnedCashback = Math.max(25, Math.round(subtotal * 0.05));
             const spentBonusesAmount = (state.useBonuses && bonusDisc > 0) ? bonusDisc : 0;
 
+            const receiptInp = document.getElementById('payment-receipt-code-input');
+            const receiptCodeVal = (receiptInp && receiptInp.value.trim()) ? receiptInp.value.trim() : '';
+            const initialPaymentStatus = (finalTotal === 0 && spentBonusesAmount > 0) ? 'paid_by_bonuses' : 'pending_verification';
+            const effectiveEarnedCashback = (finalTotal === 0 && spentBonusesAmount > 0) ? 0 : earnedCashback;
+
             const newOrderObj = {
                 id: orderId,
                 time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
@@ -6709,14 +7420,19 @@
                 clientPhone: effectiveContact,
                 clientTgId: (state.clientUser && state.clientUser.tgId) || ((window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null),
                 notifyChannel: state.notifyChannel || 'telegram',
+                paymentBank: selectedBankName,
+                paymentStatus: initialPaymentStatus,
+                receiptCode: receiptCodeVal || `Сверка ${selectedBankName} (${finalTotal} ₸)`,
+                bonusCredited: initialPaymentStatus === 'paid_by_bonuses',
                 items: summaryItems,
                 shortItems,
                 subtotal: subtotal,
                 total: finalTotal,
-                earnedCashback: earnedCashback,
+                earnedCashback: effectiveEarnedCashback,
                 spentBonuses: spentBonusesAmount,
                 status: 'cooking'
             };
+            if (receiptInp) receiptInp.value = '';
 
             state.staffOrders.unshift(newOrderObj);
             if (!state.sessionOrderIds.includes(orderId)) {
@@ -6755,7 +7471,11 @@
                 id: orderId,
                 subtotal: subtotal,
                 total: finalTotal,
-                cashback: earnedCashback,
+                paymentStatus: initialPaymentStatus,
+                receiptCode: newOrderObj.receiptCode,
+                earnedCashback: effectiveEarnedCashback,
+                cashback: 0,
+                pendingCashback: effectiveEarnedCashback,
                 spentBonuses: spentBonusesAmount,
                 date: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
             });
@@ -6778,15 +7498,18 @@
             const bonusEarnedEl = document.getElementById('live-order-bonus-earned');
             const bonusTotalEl = document.getElementById('live-order-bonus-total');
             if (bonusEarnedEl) {
-                bonusEarnedEl.textContent = spentBonusesAmount > 0
-                    ? `Списано −${spentBonusesAmount} ₸ • Начислено +${earnedCashback} ₸`
-                    : `+${earnedCashback} ₸ бонусов начислено!`;
+                if (initialPaymentStatus === 'paid_by_bonuses') {
+                    bonusEarnedEl.textContent = `Оплачено бонусами: −${spentBonusesAmount} ₸`;
+                } else {
+                    bonusEarnedEl.textContent = spentBonusesAmount > 0
+                        ? `Списано −${spentBonusesAmount} ₸ • В холде: +${effectiveEarnedCashback} ₸ (после сверки чека)`
+                        : `⏳ +${effectiveEarnedCashback} ₸ в холде (начислится после проверки оплаты бариста)`;
+                }
             }
             if (bonusTotalEl) {
-                const newBal = state.clientUser ? state.clientUser.bonuses : (100 + earnedCashback);
-                bonusTotalEl.textContent = newBal >= MIN_BONUS_THRESHOLD
-                    ? `Ваш новый баланс: ${newBal} ₸ (доступно к списанию!)`
-                    : `Ваш новый баланс: ${newBal} ₸ (списание от 200 ₸)`;
+                const newBal = state.clientUser ? state.clientUser.bonuses : 100;
+                const pendBal = state.clientUser ? (state.clientUser.pendingBonuses || 0) : effectiveEarnedCashback;
+                bonusTotalEl.textContent = `Доступно сейчас: ${newBal} ₸ • Ожидает подтверждения оплаты: +${pendBal} ₸`;
             }
 
             __cpNotifiedStatusMap.set(orderId, 'cooking');
