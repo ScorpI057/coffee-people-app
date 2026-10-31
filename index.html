@@ -190,6 +190,15 @@
         .urgent-alert-glow {
             animation: urgentPulseGlow 1.8s ease-in-out infinite;
         }
+        body.scene-night {
+            background-color: #E6ECF8 !important;
+        }
+        body.scene-espresso {
+            background-color: #EFE6DC !important;
+        }
+        body.scene-botanical {
+            background-color: #E9EFE8 !important;
+        }
     </style>
 </head>
 <body class="selection:bg-cp-blue selection:text-white">
@@ -326,6 +335,20 @@
                 <p class="text-sm sm:text-base text-cp-muted mt-2.5 max-w-2xl mx-auto font-medium" id="hero-subtitle-text">
                     Заказывайте удаленно к точному времени прихода или в зале кофейни. Готовим под ваше имя на стаканчике — без очередей у кассы.
                 </p>
+            </div>
+
+            <!-- ==========================================
+                 ACTIVE PROMO / HAPPY HOURS BANNER (CONTROLLED BY MANAGER CMS)
+                 ========================================== -->
+            <div id="global-promo-banner" class="hidden max-w-3xl mx-auto mb-3 bg-gradient-to-r from-cp-blue via-[#152C69] to-cp-ink text-white rounded-2xl px-5 py-3.5 shadow-md flex items-center justify-between gap-3 border border-cp-ochre/40">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span id="global-promo-badge" class="bg-cp-ochre text-cp-ink font-mono font-extrabold text-xs px-3 py-1 rounded-full uppercase shrink-0">-15% АКЦИЯ</span>
+                    <div class="min-w-0">
+                        <div id="global-promo-title" class="font-bold text-xs sm:text-sm text-white truncate">Специальная акция COFFEE PEOPLE активна!</div>
+                        <div class="text-[11px] text-blue-200 truncate">Скидка автоматически применяется ко всем позициям витрины</div>
+                    </div>
+                </div>
+                <span class="font-mono text-[10px] font-bold text-cp-ochre uppercase shrink-0 hidden sm:inline">Активно</span>
             </div>
 
             <!-- ==========================================
@@ -530,10 +553,13 @@
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">К какому времени</label>
                                         <select id="quick-pre-time" class="w-full bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none">
+                                            <option value="Через 5 мин">Через 5 мин (Экспресс)</option>
                                             <option value="Через 10 мин">Через 10 мин</option>
                                             <option value="Через 15 мин" selected>Через 15 мин</option>
-                                            <option value="Через 25 мин">Через 25 мин</option>
-                                            <option value="Через 40 мин">Через 40 мин</option>
+                                            <option value="Через 20 мин">Через 20 мин</option>
+                                            <option value="Через 30 мин">Через 30 мин</option>
+                                            <option value="Через 45 мин">Через 45 мин</option>
+                                            <option value="Через 60 мин">Через 1 час</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1068,11 +1094,19 @@
                 <!-- Logged-In Barista KDS Dashboard -->
                 <div id="staff-dashboard-view" class="hidden flex-1 flex flex-col overflow-hidden">
                     <div class="bg-cp-pill px-5 pt-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-cp-border shrink-0">
-                        <div class="flex gap-2">
-                            <button onclick="switchStaffTab('orders')" id="stab-orders" class="px-4 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink">
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="switchStaffTab('orders')" id="stab-orders" class="px-3.5 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink">
                                 Очередь заказов (<span id="staff-orders-count" class="font-mono">0</span>)
                             </button>
-                            <button onclick="switchStaffTab('cloud')" id="stab-cloud" class="px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1.5">
+                            <button onclick="switchStaffTab('cms')" id="stab-cms" class="px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1">
+                                <i data-lucide="sliders" class="w-3 h-3"></i>
+                                <span>Меню и Цены</span>
+                            </button>
+                            <button onclick="switchStaffTab('promos')" id="stab-promos" class="px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                <span>Сцены и Акции</span>
+                            </button>
+                            <button onclick="switchStaffTab('cloud')" id="stab-cloud" class="px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1">
                                 <i data-lucide="lock" class="w-3 h-3"></i>
                                 <span>Управление и Штат (Защищено)</span>
                             </button>
@@ -1127,12 +1161,21 @@
                         <button type="button" onclick="setOrderTimingMode('now')" id="modal-timing-now" class="py-2.5 px-1.5 rounded-xl text-cp-muted">Я уже в кофейне (Сразу)</button>
                     </div>
 
-                    <!-- Mode A: Remote Pre-order (10/15/25 min or exact time) -->
+                    <!-- Mode A: Remote Pre-order (Full Prep Range 5 to 60 min + Smart Kitchen/Bar Estimate) -->
                     <div id="remote-time-options-box" class="space-y-2">
-                        <div class="grid grid-cols-3 gap-1.5">
-                            <button type="button" onclick="selectArrivalPreset('Через 10 мин')" class="time-preset-btn py-2 px-2 rounded-xl border border-cp-border bg-white text-xs font-bold">Через 10 мин</button>
-                            <button type="button" onclick="selectArrivalPreset('Через 15 мин')" class="time-preset-btn py-2 px-2 rounded-xl border-2 border-cp-ink bg-cp-ink text-white text-xs font-bold">Через 15 мин</button>
-                            <button type="button" onclick="selectArrivalPreset('Через 25 мин')" class="time-preset-btn py-2 px-2 rounded-xl border border-cp-border bg-white text-xs font-bold">Через 25 мин</button>
+                        <div id="smart-prep-estimate-box" class="bg-cp-ochreSoft border border-cp-ochre/60 rounded-xl px-3 py-2 flex items-center justify-between text-[11px]">
+                            <span class="font-semibold text-cp-ink">Оценка готовки вашей корзины:</span>
+                            <span id="smart-prep-estimate-label" class="font-mono font-bold text-cp-blue">~5–10 мин</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <button type="button" onclick="selectArrivalPreset('Через 5 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 5 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 10 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 10 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 15 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border-2 border-cp-ink bg-cp-ink text-white text-[11px] font-bold">Через 15 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 20 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 20 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 25 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 25 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 30 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 30 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 45 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 45 мин</button>
+                            <button type="button" onclick="selectArrivalPreset('Через 60 мин')" class="time-preset-btn py-2 px-1.5 rounded-xl border border-cp-border bg-white text-[11px] font-bold">Через 60 мин</button>
                         </div>
                         <div class="flex items-center justify-between bg-cp-pill rounded-xl px-3.5 py-2">
                             <span class="text-xs font-semibold text-cp-ink">Или укажите точное время визита:</span>
@@ -2272,7 +2315,11 @@
         ];
 
         const ITEMS_BY_ID = {};
-        MENU_DATA.forEach(s => s.items.forEach(i => { ITEMS_BY_ID[i.id] = i; }));
+        function rebuildItemsIndex() {
+            Object.keys(ITEMS_BY_ID).forEach(k => delete ITEMS_BY_ID[k]);
+            MENU_DATA.forEach(s => s.items.forEach(i => { ITEMS_BY_ID[i.id] = i; }));
+        }
+        rebuildItemsIndex();
 
         // 3. STATE MANAGEMENT (BY GUEST NAME & REMOTE PRE-ORDER)
         const MIN_BONUS_THRESHOLD = 200;
@@ -2292,6 +2339,13 @@
             reserveTime: '19:00',
             reserveGuests: '2 гостя',
             reserveZone: 'У панорамного окна',
+            barLoadExtraMins: 0, // 0 (Обычная), 5 (Средняя), 10 (Час пик)
+            activeSceneTheme: 'classic', // 'classic' | 'night' | 'espresso' | 'botanical'
+            globalSalePercent: 0, // 0..50%
+            globalSaleTitle: 'Счастливые часы в COFFEE PEOPLE!',
+            customPromos: { 'PETRO10': 0.10, 'COFFEE': 0.10, 'PRINCE15': 0.15, 'VIP20': 0.20 },
+            cmsCategoryFilter: 'sec-specials',
+            cmsStoryEditIdx: 0,
             cart: [],
             promoCode: '',
             promoDiscountRate: 0,
@@ -2553,6 +2607,10 @@
             try {
                 localStorage.removeItem('cp_petro_orders_v4');
 
+                const savedCmsRaw = localStorage.getItem('cp_cms_config_v5');
+                if (savedCmsRaw) {
+                    try { applyCmsConfigObject(JSON.parse(savedCmsRaw)); } catch (e) {}
+                }
                 const savedFavs = localStorage.getItem('cp_favorites_v5');
                 if (savedFavs) {
                     const parsedFavs = JSON.parse(savedFavs);
@@ -3470,7 +3528,21 @@
             }
         }
 
+        function getEffectiveItemPrice(rawPrice) {
+            const base = Number(rawPrice) || 0;
+            const salePct = Number(state.globalSalePercent) || 0;
+            if (salePct > 0 && salePct <= 70) {
+                return Math.round((base * (100 - salePct)) / 10) * 10;
+            }
+            return base;
+        }
+
         function renderEditorialCard(item) {
+            const effPrice = getEffectiveItemPrice(item.price);
+            const oldPriceVal = item.oldPrice
+                ? Number(item.oldPrice)
+                : (state.globalSalePercent > 0 ? item.price : 0);
+            const isSoldOut = !!item.soldOut;
             const inCartQty = state.cart.filter(c => c.itemId === item.id).reduce((s, c) => s + c.qty, 0);
             const hasOptions = (item.sizes && item.sizes.length > 0) || item.modGroup !== 'none';
             const displayTitle = (state.lang === 'KZ' && item.kzName) ? `${item.kzName} (${item.name})` : item.name;
@@ -3512,16 +3584,23 @@
                     </div>
 
                     <div class="px-3 pb-3 sm:px-4 sm:pb-4 pt-1.5">
-                        ${inCartQty > 0 ? `
+                        ${isSoldOut ? `
+                            <div onclick="event.stopPropagation();" class="w-full bg-stone-200 text-stone-500 font-mono text-[11px] font-bold px-3 py-2 rounded-xl text-center uppercase">
+                                Временно в стоп-листе
+                            </div>
+                        ` : inCartQty > 0 ? `
                             <div onclick="event.stopPropagation();" class="w-full inline-flex items-center justify-between bg-cp-ochre text-cp-ink px-3 py-2 rounded-xl font-mono text-xs font-extrabold shadow-sm">
                                 <button onclick="quickAdjustItem('${item.id}', -1)" class="w-6 h-6 rounded-lg bg-black/10 hover:bg-black/20 flex items-center justify-center">−</button>
-                                <span>${inCartQty} шт • ${(item.price * inCartQty).toLocaleString('ru-RU')} ₸</span>
+                                <span>${inCartQty} шт • ${(effPrice * inCartQty).toLocaleString('ru-RU')} ₸</span>
                                 <button onclick="openProductModal('${item.id}')" class="w-6 h-6 rounded-lg bg-black/10 hover:bg-black/20 flex items-center justify-center">+</button>
                             </div>
                         ` : `
-                            <button type="button" class="bg-cp-ink group-hover:bg-cp-blue text-cp-surface font-mono font-extrabold text-xs sm:text-sm px-3.5 py-2 rounded-xl inline-flex items-center gap-2 transition shadow-sm">
-                                <span>${hasOptions ? 'от ' : ''}${item.price.toLocaleString('ru-RU')} ₸</span>
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" class="bg-cp-ink group-hover:bg-cp-blue text-cp-surface font-mono font-extrabold text-xs sm:text-sm px-3.5 py-2 rounded-xl inline-flex items-center gap-2 transition shadow-sm">
+                                    <span>${hasOptions ? 'от ' : ''}${effPrice.toLocaleString('ru-RU')} ₸</span>
+                                </button>
+                                ${oldPriceVal > effPrice ? `<span class="font-mono text-[11px] text-cp-muted line-through">${oldPriceVal.toLocaleString('ru-RU')} ₸</span>` : ''}
+                            </div>
                         `}
                     </div>
                 </article>
@@ -3630,6 +3709,10 @@
         function openProductModal(itemId) {
             const item = ITEMS_BY_ID[itemId];
             if (!item) return;
+            if (item.soldOut) {
+                showSystemToast(item.name, 'Позиция в стоп-листе', 'Извините, эта позиция временно закончилась на кухне. Выберите другое блюдо или напиток.');
+                return;
+            }
             state.activeModalItem = item;
             state.modalQty = 1;
             state.modalSizeIdx = 0;
@@ -3750,7 +3833,8 @@
         function getModalUnitPrice() {
             const it = state.activeModalItem;
             if (!it) return 0;
-            let base = (it.sizes && it.sizes[state.modalSizeIdx]) ? it.sizes[state.modalSizeIdx].price : it.price;
+            let rawBase = (it.sizes && it.sizes[state.modalSizeIdx]) ? it.sizes[state.modalSizeIdx].price : it.price;
+            let base = getEffectiveItemPrice(rawBase);
             const extrasList = EXTRA_GROUPS[it.modGroup] || [];
             state.modalExtras.forEach(i => {
                 if (extrasList[i]) base += extrasList[i].price;
@@ -3980,17 +4064,20 @@
             const inp = document.getElementById('sidebar-promo-input');
             const msg = document.getElementById('sidebar-promo-msg');
             const code = (inp ? inp.value : '').trim().toUpperCase();
-            if (code === 'PETRO10' || code === 'COFFEE') {
+            const promosMap = state.customPromos || { 'PETRO10': 0.10, 'COFFEE': 0.10, 'PRINCE15': 0.15, 'VIP20': 0.20 };
+            if (code && promosMap[code]) {
                 state.promoCode = code;
-                state.promoDiscountRate = 0.10;
+                state.promoDiscountRate = promosMap[code];
+                const pct = Math.round(promosMap[code] * 100);
                 if (msg) {
-                    msg.textContent = `Промокод ${code} активирован (-10%)`;
+                    msg.textContent = `Промокод ${code} активирован (−${pct}%)`;
                     msg.classList.remove('hidden');
                 }
             } else {
                 state.promoDiscountRate = 0;
+                const availKeys = Object.keys(promosMap).slice(0, 3).join(', ');
                 if (msg) {
-                    msg.textContent = 'Промокод не найден (доступен PETRO10)';
+                    msg.textContent = `Промокод не найден (доступны: ${availKeys})`;
                     msg.classList.remove('hidden');
                 }
             }
@@ -4569,15 +4656,116 @@
             openStaffModal();
         }
 
+        function getSmartPrepTimeEstimate() {
+            const extra = Number(state.barLoadExtraMins) || 0;
+            if (!state.cart || state.cart.length === 0) {
+                const minB = 5 + extra;
+                const maxB = 10 + extra;
+                return { min: minB, max: maxB, label: `~${minB}–${maxB} мин` };
+            }
+            let hasKitchen = false;
+            let hasSpecialtyCoffee = false;
+            let totalUnits = 0;
+            state.cart.forEach(c => {
+                totalUnits += (c.qty || 1);
+                const id = c.itemId || '';
+                if (id.startsWith('bg-') || id.startsWith('bf-')) hasKitchen = true;
+                else if (id.startsWith('sp-') || id.startsWith('cf-')) hasSpecialtyCoffee = true;
+            });
+            let minP = 4;
+            let maxP = 7;
+            if (hasKitchen) {
+                minP = 12;
+                maxP = 18;
+            } else if (hasSpecialtyCoffee) {
+                minP = 5;
+                maxP = 10;
+            }
+            if (totalUnits >= 4) {
+                minP += 4;
+                maxP += 6;
+            }
+            minP += extra;
+            maxP += extra;
+            return { min: minP, max: maxP, label: `~${minP}–${maxP} мин` };
+        }
+
+        function saveCmsConfigToStorageAndCloud() {
+            const cmsPayload = {
+                name: '_GLOBAL_CMS_CONFIG_',
+                menuData: MENU_DATA,
+                stories: STORIES,
+                barLoadExtraMins: state.barLoadExtraMins || 0,
+                activeSceneTheme: state.activeSceneTheme || 'classic',
+                globalSalePercent: state.globalSalePercent || 0,
+                globalSaleTitle: state.globalSaleTitle || '',
+                customPromos: state.customPromos || { 'PETRO10': 0.10, 'COFFEE': 0.10 }
+            };
+            try {
+                localStorage.setItem('cp_cms_config_v5', JSON.stringify(cmsPayload));
+            } catch (e) {}
+            if (typeof window.saveUserProfileToFirestore === 'function') {
+                window.saveUserProfileToFirestore('_GLOBAL_CMS_CONFIG_', cmsPayload);
+            }
+        }
+
+        function applyCmsConfigObject(cms) {
+            if (!cms) return;
+            if (Array.isArray(cms.menuData) && cms.menuData.length) {
+                MENU_DATA.length = 0;
+                cms.menuData.forEach(sec => MENU_DATA.push(sec));
+                rebuildItemsIndex();
+            }
+            if (Array.isArray(cms.stories) && cms.stories.length) {
+                STORIES.length = 0;
+                cms.stories.forEach(st => STORIES.push(st));
+            }
+            if (typeof cms.barLoadExtraMins === 'number') state.barLoadExtraMins = cms.barLoadExtraMins;
+            if (cms.activeSceneTheme) state.activeSceneTheme = cms.activeSceneTheme;
+            if (typeof cms.globalSalePercent === 'number') state.globalSalePercent = cms.globalSalePercent;
+            if (cms.globalSaleTitle) state.globalSaleTitle = cms.globalSaleTitle;
+            if (cms.customPromos && typeof cms.customPromos === 'object') state.customPromos = cms.customPromos;
+            applySceneAndPromoBannerUI();
+            renderVerticalStories();
+            renderMenuSections();
+            updateCartViews();
+        }
+
+        function applySceneAndPromoBannerUI() {
+            document.body.classList.remove('scene-night', 'scene-espresso', 'scene-botanical');
+            if (state.activeSceneTheme === 'night') document.body.classList.add('scene-night');
+            else if (state.activeSceneTheme === 'espresso') document.body.classList.add('scene-espresso');
+            else if (state.activeSceneTheme === 'botanical') document.body.classList.add('scene-botanical');
+
+            const banner = document.getElementById('global-promo-banner');
+            const badge = document.getElementById('global-promo-badge');
+            const title = document.getElementById('global-promo-title');
+            if (banner) {
+                if (state.globalSalePercent > 0) {
+                    banner.classList.remove('hidden');
+                    if (badge) badge.textContent = `−${state.globalSalePercent}% АКЦИЯ`;
+                    if (title) title.textContent = state.globalSaleTitle || `Скидка −${state.globalSalePercent}% на всё меню активна!`;
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+            const est = getSmartPrepTimeEstimate();
+            const estEl = document.getElementById('smart-prep-estimate-label');
+            if (estEl) {
+                const loadTxt = state.barLoadExtraMins === 0 ? 'обычная посадка' : state.barLoadExtraMins === 5 ? 'средняя загрузка' : 'час пик на баре';
+                estEl.textContent = `${est.label} (${loadTxt})`;
+            }
+        }
+
         function switchStaffTab(tab) {
             state.activeStaffTab = tab;
-            ['orders', 'cloud'].forEach(t => {
+            ['orders', 'cms', 'promos', 'cloud'].forEach(t => {
                 const btn = document.getElementById(`stab-${t}`);
                 if (!btn) return;
                 if (t === tab) {
-                    btn.className = 'px-4 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink flex items-center gap-1.5';
+                    btn.className = 'px-3.5 py-2 rounded-t-xl bg-cp-surface font-bold text-xs text-cp-ink flex items-center gap-1';
                 } else {
-                    btn.className = 'px-4 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1.5';
+                    btn.className = 'px-3.5 py-2 rounded-t-xl text-xs font-bold text-cp-muted hover:text-cp-ink flex items-center gap-1';
                 }
             });
             renderStaffDashboard();
@@ -4629,9 +4817,463 @@
             showSystemToast('Штат сотрудников', 'Номер удалён', `Доступ для ${removed[0]} отозван.`);
         }
 
+        function setBarLoadMode(extraMins) {
+            state.barLoadExtraMins = Number(extraMins) || 0;
+            saveCmsConfigToStorageAndCloud();
+            applySceneAndPromoBannerUI();
+            renderStaffDashboard();
+            showSystemToast('Режим загрузки бара', `Время готовки скорректировано (+${state.barLoadExtraMins} мин)`, 'Гости видят актуальное время ожидания при оформлении предзаказа.');
+        }
+
+        function setOrderCustomPrepTime(orderIdx, newTimeLabel) {
+            const ord = state.staffOrders[orderIdx];
+            if (!ord) return;
+            ord.arrivalInfo = newTimeLabel;
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({ ...ord, orderNumber: ord.id });
+            }
+            broadcastRealtimeSync();
+            renderStaffDashboard();
+            showSystemToast(`${ord.id} • ${ord.clientName}`, `Время готовности: ${newTimeLabel}`, `Таймер заказа ${ord.id} обновлён на табло выдачи.`);
+        }
+
+        function cmsSaveItemChanges(itemId) {
+            const it = ITEMS_BY_ID[itemId];
+            if (!it) return;
+            const priceInp = document.getElementById(`cms-price-${itemId}`);
+            const oldPriceInp = document.getElementById(`cms-oldprice-${itemId}`);
+            const badgeSel = document.getElementById(`cms-badge-${itemId}`);
+            if (priceInp) {
+                const newP = Math.max(100, parseInt(priceInp.value, 10) || it.price);
+                const diff = newP - it.price;
+                it.price = newP;
+                if (Array.isArray(it.sizes)) {
+                    it.sizes.forEach((sz, idx) => {
+                        if (idx === 0) sz.price = newP;
+                        else sz.price = Math.max(100, sz.price + diff);
+                    });
+                }
+            }
+            if (oldPriceInp) {
+                const oldP = parseInt(oldPriceInp.value, 10) || 0;
+                it.oldPrice = oldP > it.price ? oldP : 0;
+            }
+            if (badgeSel) {
+                it.badge = badgeSel.value;
+            }
+            saveCmsConfigToStorageAndCloud();
+            renderMenuSections();
+            updateCartViews();
+            renderStaffDashboard();
+            showSystemToast('CMS Меню COFFEE PEOPLE', `Обновлено: ${it.name}`, `Новая цена: ${it.price} ₸ ${it.badge ? '• Бейдж: ' + it.badge : ''}`);
+        }
+
+        function cmsToggleSoldOut(itemId) {
+            const it = ITEMS_BY_ID[itemId];
+            if (!it) return;
+            it.soldOut = !it.soldOut;
+            saveCmsConfigToStorageAndCloud();
+            renderMenuSections();
+            renderStaffDashboard();
+            showSystemToast('Стоп-лист витрины', it.name, it.soldOut ? 'Позиция переведена в СТОП-ЛИСТ (скрыта от заказа).' : 'Позиция снова В НАЛИЧИИ на витрине!');
+        }
+
+        function cmsDeleteMenuItem(secId, itemId) {
+            const sec = MENU_DATA.find(s => s.id === secId);
+            if (!sec || sec.items.length <= 1) return;
+            const it = ITEMS_BY_ID[itemId];
+            sec.items = sec.items.filter(i => i.id !== itemId);
+            rebuildItemsIndex();
+            saveCmsConfigToStorageAndCloud();
+            renderMenuSections();
+            renderStaffDashboard();
+            showSystemToast('CMS Меню', 'Позиция удалена', `${it ? it.name : itemId} удалена из витрины.`);
+        }
+
+        function cmsAddNewMenuItem() {
+            const secId = document.getElementById('cms-new-sec').value;
+            const nameRu = document.getElementById('cms-new-name').value.trim();
+            const nameKz = document.getElementById('cms-new-kz').value.trim();
+            const weight = document.getElementById('cms-new-weight').value.trim() || '300 мл';
+            const price = Math.max(100, parseInt(document.getElementById('cms-new-price').value, 10) || 1800);
+            const badge = document.getElementById('cms-new-badge').value;
+            const modGroup = document.getElementById('cms-new-mod').value;
+            const desc = document.getElementById('cms-new-desc').value.trim() || 'Авторская позиция COFFEE PEOPLE из свежих ингредиентов.';
+            const img = document.getElementById('cms-new-img').value.trim() || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=700&q=85';
+
+            if (nameRu.length < 2) {
+                showSystemToast('Конструктор меню', 'Укажите название', 'Введите название новой позиции (минимум 2 буквы).');
+                return;
+            }
+            const sec = MENU_DATA.find(s => s.id === secId) || MENU_DATA[0];
+            const newId = 'custom-' + Date.now().toString().slice(-5);
+            const tags = [];
+            if (badge === 'NEW') tags.push('new');
+            if (badge === 'TOP' || badge === 'ХИТ') tags.push('hit');
+            if (badge === 'SPECIAL') tags.push('special');
+
+            const newItem = {
+                id: newId,
+                name: nameRu,
+                kzName: nameKz,
+                weight: weight,
+                price: price,
+                oldPrice: 0,
+                tags: tags,
+                badge: badge,
+                desc: desc,
+                img: img,
+                modGroup: modGroup,
+                soldOut: false
+            };
+            sec.items.unshift(newItem);
+            rebuildItemsIndex();
+            state.cmsCategoryFilter = sec.id;
+            saveCmsConfigToStorageAndCloud();
+            renderMenuSections();
+            renderStaffDashboard();
+            showSystemToast('Новинка в меню!', `${nameRu} (${price} ₸)`, `Позиция добавлена в раздел «${sec.title}» и видна всем гостям.`);
+        }
+
+        function cmsApplyGlobalSale(pct) {
+            state.globalSalePercent = Number(pct) || 0;
+            const titleInp = document.getElementById('cms-global-sale-title');
+            if (titleInp && titleInp.value.trim()) {
+                state.globalSaleTitle = titleInp.value.trim();
+            }
+            saveCmsConfigToStorageAndCloud();
+            applySceneAndPromoBannerUI();
+            renderMenuSections();
+            updateCartViews();
+            renderStaffDashboard();
+            showSystemToast(
+                'Акции и Скидки',
+                state.globalSalePercent > 0 ? `Включена скидка −${state.globalSalePercent}% на витрину!` : 'Глобальная скидка отключена',
+                state.globalSalePercent > 0 ? state.globalSaleTitle : 'Все цены вернулись к базовым значениям.'
+            );
+        }
+
+        function cmsAddPromoCode() {
+            const codeInp = document.getElementById('cms-new-promo-code');
+            const pctInp = document.getElementById('cms-new-promo-pct');
+            const code = (codeInp ? codeInp.value : '').trim().toUpperCase().replace(/[^A-ZА-Я0-9]/g, '');
+            const pct = Math.min(70, Math.max(5, parseInt(pctInp ? pctInp.value : '15', 10) || 15));
+            if (code.length < 3) {
+                showSystemToast('Промокоды', 'Короткий код', 'Введите промокод минимум из 3 символов (например, COFFEE20).');
+                return;
+            }
+            if (!state.customPromos) state.customPromos = {};
+            state.customPromos[code] = pct / 100;
+            saveCmsConfigToStorageAndCloud();
+            renderStaffDashboard();
+            showSystemToast('Промокод создан!', `${code} (−${pct}%)`, 'Гости уже могут применить этот промокод в корзине.');
+        }
+
+        function cmsDeletePromoCode(code) {
+            if (!state.customPromos || !state.customPromos[code]) return;
+            delete state.customPromos[code];
+            saveCmsConfigToStorageAndCloud();
+            renderStaffDashboard();
+        }
+
+        function cmsSelectSceneTheme(themeKey) {
+            state.activeSceneTheme = themeKey;
+            saveCmsConfigToStorageAndCloud();
+            applySceneAndPromoBannerUI();
+            renderStaffDashboard();
+            showSystemToast('Сцена оформления', `Активирована сцена: ${themeKey.toUpperCase()}`, 'Атмосфера витрины обновлена у всех гостей.');
+        }
+
+        function cmsSaveStoryScene(storyIdx) {
+            const st = STORIES[storyIdx];
+            if (!st) return;
+            const badgeEl = document.getElementById('cms-story-badge');
+            const titleEl = document.getElementById('cms-story-title');
+            const subEl = document.getElementById('cms-story-sub');
+            const imgEl = document.getElementById('cms-story-img');
+            if (badgeEl && badgeEl.value.trim()) st.badge = badgeEl.value.trim();
+            if (titleEl && titleEl.value.trim()) st.title = titleEl.value.trim();
+            if (subEl && subEl.value.trim()) st.subtitle = subEl.value.trim();
+            if (imgEl && imgEl.value.trim()) st.img = imgEl.value.trim();
+            saveCmsConfigToStorageAndCloud();
+            renderVerticalStories();
+            renderStaffDashboard();
+            showSystemToast('Сторис-сцена обновлена', st.title, 'Карточка сторис на главной странице успешно обновлена!');
+        }
+
+        function renderManagerPinGateHtml() {
+            return `
+                <div class="bg-white rounded-2xl p-6 border border-cp-border max-w-md mx-auto text-center space-y-4">
+                    <div class="w-11 h-11 rounded-2xl bg-cp-blueSoft text-cp-blue flex items-center justify-center mx-auto">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-display font-bold text-sm uppercase text-cp-ink">Доступ для Главного Управляющего / Владельца</h4>
+                        <p class="text-xs text-cp-muted mt-1 leading-relaxed">
+                            Управление ценами, добавление новинок в меню, смена сторис-сцен, запуск акций и список штата защищены PIN-кодом управляющего (<b>7777</b>).
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input id="manager-admin-pin-inp" type="password" inputmode="numeric" maxlength="4" placeholder="PIN управляющего" class="flex-1 bg-cp-pill rounded-xl px-4 py-3 text-center font-mono text-sm font-bold tracking-widest focus:outline-none">
+                        <button onclick="unlockManagerEngineeringPanel()" class="bg-cp-ink text-white text-xs font-bold px-5 py-3 rounded-xl">
+                            Разблокировать
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderStaffDashboard() {
             updateStaffCounters();
             const body = document.getElementById('staff-tab-body');
+
+            // TAB 2: MANAGER CMS (MENU, PRICES, STOP-LIST & ADD NEW ITEM)
+            if (state.activeStaffTab === 'cms') {
+                if (!state.managerPanelUnlocked) {
+                    body.innerHTML = renderManagerPinGateHtml();
+                    return;
+                }
+                const currentSec = MENU_DATA.find(s => s.id === state.cmsCategoryFilter) || MENU_DATA[0];
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <!-- Add New Product Card -->
+                        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-cp-border space-y-3 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">+ Добавить новое блюдо или напиток в меню</h4>
+                                <span class="font-mono text-[10px] font-bold bg-cp-ochre text-cp-ink px-2.5 py-0.5 rounded-full">CLOUD CMS</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Категория</label>
+                                    <select id="cms-new-sec" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                                        ${MENU_DATA.map(s => `<option value="${s.id}" ${s.id === currentSec.id ? 'selected' : ''}>${s.title}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Название (RU)</label>
+                                    <input id="cms-new-name" type="text" placeholder="Например: Матча Латте Манго" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Название (KZ, опционально)</label>
+                                    <input id="cms-new-kz" type="text" placeholder="Матча Манго" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Цена (₸)</label>
+                                    <input id="cms-new-price" type="number" value="1800" step="50" class="w-full bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Объём / Выход</label>
+                                    <input id="cms-new-weight" type="text" value="300 мл" class="w-full bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs font-bold focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Бейдж на фото</label>
+                                    <select id="cms-new-badge" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                                        <option value="NEW">NEW (Новинка)</option>
+                                        <option value="SPECIAL">SPECIAL</option>
+                                        <option value="TOP">TOP (Хит)</option>
+                                        <option value="АКЦИЯ">АКЦИЯ</option>
+                                        <option value="">Без бейджа</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Модификаторы</label>
+                                    <select id="cms-new-mod" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+                                        <option value="coffee">Кофе (молоко / сиропы)</option>
+                                        <option value="none">Без допов</option>
+                                        <option value="syrniki">Топпинги к завтраку</option>
+                                        <option value="cocoa">Какао (маршмеллоу)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Описание состава</label>
+                                    <input id="cms-new-desc" type="text" placeholder="Краткое аппетитное описание ингредиентов..." class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-medium focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Фото (URL или выберите пресет)</label>
+                                    <input id="cms-new-img" type="text" value="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=700&q=85" class="w-full bg-cp-pill rounded-xl px-3 py-2 font-mono text-[11px] focus:outline-none">
+                                </div>
+                            </div>
+                            <button type="button" onclick="cmsAddNewMenuItem()" class="w-full bg-cp-ink hover:bg-stone-800 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">
+                                + Опубликовать позицию на витрине меню
+                            </button>
+                        </div>
+
+                        <!-- Edit Prices, Badges & Stop-List -->
+                        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-cp-border space-y-3 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Контроль цен, скидок и Стоп-листа</h4>
+                                <div class="flex flex-wrap gap-1">
+                                    ${MENU_DATA.map(s => `
+                                        <button type="button" onclick="state.cmsCategoryFilter='${s.id}'; renderStaffDashboard();" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${s.id === currentSec.id ? 'bg-cp-ink text-white' : 'bg-cp-pill text-cp-ink hover:bg-cp-pillHover'} transition">
+                                            ${s.title.split('•')[0].trim()}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                ${currentSec.items.map(it => `
+                                    <div class="bg-cp-bg/80 rounded-xl p-3 border border-cp-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                                            <img src="${it.img}" alt="" onerror="handleImageFallback(this)" class="w-11 h-11 rounded-xl object-cover shrink-0">
+                                            <div class="min-w-0">
+                                                <div class="text-xs font-bold text-cp-ink truncate">${it.name} ${it.soldOut ? '<span class="text-red-600 font-mono text-[10px]">[СТОП-ЛИСТ]</span>' : ''}</div>
+                                                <div class="text-[10px] text-cp-muted font-mono">${it.weight || ''}</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                                            <div>
+                                                <label class="block text-[9px] font-mono uppercase text-cp-muted">Цена ₸</label>
+                                                <input id="cms-price-${it.id}" type="number" value="${it.price}" step="50" class="w-20 bg-white border border-cp-border rounded-lg px-2 py-1 font-mono text-xs font-bold">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-mono uppercase text-cp-muted">Старая ₸</label>
+                                                <input id="cms-oldprice-${it.id}" type="number" value="${it.oldPrice || 0}" step="50" placeholder="0" class="w-20 bg-white border border-cp-border rounded-lg px-2 py-1 font-mono text-xs text-cp-muted">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-mono uppercase text-cp-muted">Бейдж</label>
+                                                <select id="cms-badge-${it.id}" class="bg-white border border-cp-border rounded-lg px-2 py-1 text-xs font-bold">
+                                                    <option value="" ${!it.badge ? 'selected' : ''}>Нет</option>
+                                                    <option value="NEW" ${it.badge === 'NEW' ? 'selected' : ''}>NEW</option>
+                                                    <option value="TOP" ${it.badge === 'TOP' ? 'selected' : ''}>TOP</option>
+                                                    <option value="SPECIAL" ${it.badge === 'SPECIAL' ? 'selected' : ''}>SPECIAL</option>
+                                                    <option value="АКЦИЯ" ${it.badge === 'АКЦИЯ' ? 'selected' : ''}>АКЦИЯ</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" onclick="cmsSaveItemChanges('${it.id}')" class="bg-cp-blue hover:bg-cp-blueDark text-white text-[11px] font-bold px-3 py-2 rounded-lg mt-3 sm:mt-0">
+                                                Сохранить
+                                            </button>
+                                            <button type="button" onclick="cmsToggleSoldOut('${it.id}')" class="${it.soldOut ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-900'} text-[11px] font-bold px-2.5 py-2 rounded-lg mt-3 sm:mt-0">
+                                                ${it.soldOut ? 'Вернуть' : 'В стоп'}
+                                            </button>
+                                            <button type="button" onclick="cmsDeleteMenuItem('${currentSec.id}', '${it.id}')" class="text-red-600 hover:bg-red-50 text-[11px] font-bold px-2 py-2 rounded-lg mt-3 sm:mt-0" title="Удалить">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // TAB 3: SCENES, STORIES & PROMO DISCOUNTS
+            if (state.activeStaffTab === 'promos') {
+                if (!state.managerPanelUnlocked) {
+                    body.innerHTML = renderManagerPinGateHtml();
+                    return;
+                }
+                const stIdx = state.cmsStoryEditIdx || 0;
+                const activeSt = STORIES[stIdx] || STORIES[0];
+                const promosEntries = Object.entries(state.customPromos || {});
+
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <!-- 1. Global Discount / Happy Hours Engine -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Глобальные акции и Счастливые часы на витрине</h4>
+                                <span class="font-mono text-[10px] font-bold ${state.globalSalePercent > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-cp-pill text-cp-muted'} px-2.5 py-0.5 rounded-full">
+                                    ${state.globalSalePercent > 0 ? 'АКТИВНО −' + state.globalSalePercent + '%' : 'ВЫКЛЮЧЕНО (0%)'}
+                                </span>
+                            </div>
+                            <p class="text-xs text-cp-muted leading-relaxed">
+                                Запустите мгновенную акцию на всю витрину: сверху появится праздничный баннер, а на всех карточках меню автоматически пересчитается цена со скидкой и зачеркнется старая цена.
+                            </p>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Заголовок баннера акции на главной странице</label>
+                                <input id="cms-global-sale-title" type="text" value="${state.globalSaleTitle || 'Счастливые часы в COFFEE PEOPLE!'}" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-5 gap-2">
+                                ${[0, 10, 15, 20, 25].map(pct => `
+                                    <button type="button" onclick="cmsApplyGlobalSale(${pct})" class="py-2.5 rounded-xl font-mono text-xs font-extrabold border ${state.globalSalePercent === pct ? 'bg-cp-ink text-cp-ochre border-cp-ink shadow' : 'bg-cp-bg text-cp-ink border-cp-border hover:bg-cp-pill'} transition">
+                                        ${pct === 0 ? 'Выкл (0%)' : '−' + pct + '%'}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- 2. Promo Codes Manager -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3 shadow-sm">
+                            <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Управление промокодами корзины</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${promosEntries.map(([code, rate]) => `
+                                    <div class="inline-flex items-center gap-2 bg-cp-ochreSoft border border-cp-ochre px-3 py-1.5 rounded-xl font-mono text-xs font-bold text-cp-ink">
+                                        <span>${code} (−${Math.round(rate * 100)}%)</span>
+                                        <button type="button" onclick="cmsDeletePromoCode('${code}')" class="text-red-600 hover:text-red-800">✕</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <input id="cms-new-promo-code" type="text" placeholder="Код (напр. SUMMER20)" class="flex-1 bg-cp-pill rounded-xl px-3.5 py-2 font-mono text-xs font-bold uppercase focus:outline-none">
+                                <input id="cms-new-promo-pct" type="number" value="15" min="5" max="70" class="w-24 bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs font-bold focus:outline-none" placeholder="% скидки">
+                                <button type="button" onclick="cmsAddPromoCode()" class="bg-cp-blue text-white text-xs font-bold px-4 py-2 rounded-xl">
+                                    + Добавить промокод
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3. Visual Scene / Theme Switcher & Story Editor -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3.5 shadow-sm">
+                            <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Сцены оформления сайта и Редактор Сторис</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                ${[
+                                    { k: 'classic', n: 'Теплый Алебастр', d: 'Фирменный стиль' },
+                                    { k: 'night', n: 'Звездный Кобальт', d: 'Le Petit Prince' },
+                                    { k: 'espresso', n: 'Утренний Эспрессо', d: 'Карамель и крафт' },
+                                    { k: 'botanical', n: 'Бранч & Шалфей', d: 'Свежая ботаника' }
+                                ].map(sc => `
+                                    <button type="button" onclick="cmsSelectSceneTheme('${sc.k}')" class="p-3 rounded-xl border text-left transition ${state.activeSceneTheme === sc.k ? 'border-2 border-cp-ink bg-cp-ink text-white' : 'border-cp-border bg-cp-bg text-cp-ink'}">
+                                        <div class="text-xs font-bold">${sc.n}</div>
+                                        <div class="text-[10px] opacity-75 mt-0.5">${sc.d}</div>
+                                    </button>
+                                `).join('')}
+                            </div>
+
+                            <div class="border-t border-cp-border pt-3 space-y-2.5">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="text-xs font-bold text-cp-ink">Редактировать карточку Сторис на главной:</span>
+                                    <div class="flex gap-1">
+                                        ${STORIES.map((s, i) => `
+                                            <button type="button" onclick="state.cmsStoryEditIdx=${i}; renderStaffDashboard();" class="px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold ${i === stIdx ? 'bg-cp-blue text-white' : 'bg-cp-pill text-cp-ink'}">
+                                                Сцена #${i + 1}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Бейдж сторис</label>
+                                        <input id="cms-story-badge" type="text" value="${activeSt.badge}" class="w-full bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Заголовок сторис</label>
+                                        <input id="cms-story-title" type="text" value="${activeSt.title}" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Подзаголовок</label>
+                                        <input id="cms-story-sub" type="text" value="${activeSt.subtitle}" class="w-full bg-cp-pill rounded-xl px-3 py-2 text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Обложка (URL фото)</label>
+                                        <input id="cms-story-img" type="text" value="${activeSt.img}" class="w-full bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs">
+                                    </div>
+                                </div>
+                                <button type="button" onclick="cmsSaveStoryScene(${stIdx})" class="bg-cp-ink text-white text-xs font-bold px-5 py-2.5 rounded-xl">
+                                    Сохранить Сторис-сцену #${stIdx + 1}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
 
             if (state.activeStaffTab === 'cloud') {
                 if (!state.managerPanelUnlocked) {
@@ -4744,7 +5386,33 @@
                 return;
             }
 
+            const barLoadHeaderHtml = `
+                <div class="bg-white rounded-2xl p-3.5 border border-cp-border flex flex-wrap items-center justify-between gap-2 shadow-sm mb-3">
+                    <div>
+                        <div class="text-xs font-bold text-cp-ink">Текущая нагрузка бара и кухни (влияет на расчет времени готовки)</div>
+                        <div class="text-[11px] text-cp-muted">Выберите режим, чтобы гости видели реальный размах времени приготовления</div>
+                    </div>
+                    <div class="flex gap-1.5">
+                        <button type="button" onclick="setBarLoadMode(0)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 0 ? 'bg-emerald-700 text-white' : 'bg-cp-pill text-cp-ink'}">5–10 мин (Спокойно)</button>
+                        <button type="button" onclick="setBarLoadMode(5)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 5 ? 'bg-amber-600 text-white' : 'bg-cp-pill text-cp-ink'}">10–15 мин (Средне)</button>
+                        <button type="button" onclick="setBarLoadMode(10)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 10 ? 'bg-red-600 text-white' : 'bg-cp-pill text-cp-ink'}">15–25 мин (Час пик)</button>
+                    </div>
+                </div>
+            `;
+
             if (!state.staffOrders.length) {
+                body.innerHTML = barLoadHeaderHtml + `
+                    <div class="bg-white rounded-2xl p-8 border border-cp-border text-center space-y-2">
+                        <div class="font-display font-bold text-sm uppercase text-cp-ink">Очередь заказов пуста</div>
+                        <p class="text-xs text-cp-muted max-w-md mx-auto leading-relaxed">
+                            Как только гость оформит заказ через меню, карточка с его именем, телефоном и составом заказа мгновенно появится здесь и на онлайн-табло.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (false) {
                 body.innerHTML = `
                     <div class="bg-white rounded-2xl p-8 border border-cp-border text-center space-y-2">
                         <div class="font-display font-bold text-sm uppercase text-cp-ink">Очередь заказов пуста</div>
@@ -4756,7 +5424,7 @@
                 return;
             }
 
-            body.innerHTML = state.staffOrders.map((o, idx) => {
+            body.innerHTML = barLoadHeaderHtml + state.staffOrders.map((o, idx) => {
                 const statusBadge = o.status === 'new'
                     ? '<span class="bg-red-100 text-red-800 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Новый предзаказ</span>'
                     : o.status === 'cooking'
@@ -4783,9 +5451,19 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-cp-bg/60 rounded-xl p-2.5 text-xs">
-                            <div><span class="text-cp-muted">Время визита:</span> <b class="text-cp-ink">${o.arrivalInfo || 'Сразу ~7 мин'}</b></div>
+                            <div><span class="text-cp-muted">Готовность:</span> <b class="text-cp-ink">${o.arrivalInfo || 'Сразу ~7 мин'}</b></div>
                             <div><span class="text-cp-muted">Подача:</span> <b class="text-cp-ink">${o.vessel || 'С собой'}</b></div>
                             <div><span class="text-cp-muted">Связь (${o.notifyChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram'}):</span> <b class="font-mono text-cp-blue">${o.clientPhone}</b></div>
+                        </div>
+
+                        <!-- Quick Barista Prep Time Adjuster (5 to 30 min) -->
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span class="font-mono text-[10px] uppercase text-cp-muted mr-1">Таймер готовки:</span>
+                            ${['Через 5 мин', 'Через 10 мин', 'Через 15 мин', 'Через 20 мин', 'Через 30 мин'].map(tLbl => `
+                                <button type="button" onclick="setOrderCustomPrepTime(${idx}, '${tLbl}')" class="px-2 py-1 rounded-lg font-mono text-[10px] font-bold border ${o.arrivalInfo === tLbl ? 'bg-cp-blue text-white border-cp-blue' : 'bg-cp-surface text-cp-ink border-cp-border hover:bg-cp-pill'} transition">
+                                    ${tLbl.replace('Через ', '~')}
+                                </button>
+                            `).join('')}
                         </div>
 
                         <div class="bg-cp-surface rounded-xl p-3 space-y-1 text-xs font-semibold text-cp-ink border border-cp-border">
@@ -4923,6 +5601,7 @@
 
         // 14. ORDER CONFIGURATION MODAL (REMOTE PRE-ORDER TIME & VESSEL)
         function openOrderConfigModal() {
+            applySceneAndPromoBannerUI();
             document.getElementById('order-config-modal').classList.remove('hidden');
             const nameInp = document.getElementById('modal-cup-name-input');
             if (nameInp) nameInp.value = getEffectiveCupName() === 'Гость' ? '' : getEffectiveCupName();
@@ -5904,6 +6583,12 @@
                                 if (!raw) return;
                                 const cloudUser = JSON.parse(raw);
                                 if (!cloudUser || !cloudUser.name) return;
+                                if (cloudUser.name === '_GLOBAL_CMS_CONFIG_') {
+                                    if (typeof applyCmsConfigObject === 'function') {
+                                        applyCmsConfigObject(cloudUser);
+                                    }
+                                    return;
+                                }
                                 if (cloudUser.name === '_GLOBAL_NOTIFY_CONFIG_') {
                                     if (typeof state !== 'undefined') {
                                         if (cloudUser.telegramBotToken) {
