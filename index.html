@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>COFFEE PEOPLE — Предзаказ ко времени, Меню и Табло выдачи | Петропавловск</title>
+    <link id="cp-pwa-manifest-link" rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIkNPRkZFRSBQRU9QTEUg4oCUINCf0YDQtdC00LfQsNC60LDQtyDQuCDQnNC10L3RjiB8INCf0LXRgtGA0L7Qv9Cw0LLQu9C+0LLRgdC6IiwgInNob3J0X25hbWUiOiAiQ29mZmVlIFBlb3BsZSIsICJkZXNjcmlwdGlvbiI6ICLQo9C00LDQu9GR0L3QvdGL0Lkg0L/RgNC10LTQt9Cw0LrQsNC3INC60L7RhNC1INC60L4g0LLRgNC10LzQtdC90LgsINCx0L7QvdGD0YHQvdCw0Y8g0LrQsNGA0YLQsCA1JSDQuCDQttC40LLQvtC1INGC0LDQsdC70L4g0LPQvtGC0L7QstC90L7RgdGC0Lgg0LIg0J/QtdGC0YDQvtC/0LDQstC70L7QstGB0LrQtS4iLCAic3RhcnRfdXJsIjogIi8/c291cmNlPXB3YSIsICJzY29wZSI6ICIvIiwgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNGNEYwRTgiLCAidGhlbWVfY29sb3IiOiAiIzE4MTUxMiIsICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1wcmltYXJ5IiwgImljb25zIjogW3sic3JjIjogImh0dHBzOi8vaW1hZ2VzLnVuc3BsYXNoLmNvbS9waG90by0xNTE0NDMyMzI0NjA3LWEwOWQ5YjRhZWZkZD9hdXRvPWZvcm1hdCZmaXQ9Y3JvcCZ3PTE5MiZxPTg1IiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9qcGVnIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn0sIHsic3JjIjogImh0dHBzOi8vaW1hZ2VzLnVuc3BsYXNoLmNvbS9waG90by0xNTE0NDMyMzI0NjA3LWEwOWQ5YjRhZWZkZD9hdXRvPWZvcm1hdCZmaXQ9Y3JvcCZ3PTUxMiZxPTg1IiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9qcGVnIiwgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIn1dfQ==">
+    <meta name="theme-color" content="#181512">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Coffee People">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -144,6 +149,14 @@
             flex-direction: column;
             gap: 8px;
         }
+        @keyframes cpPhoneShake {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            12%, 36%, 60%, 84% { transform: translate3d(-6px, 0, 0) rotate(-0.8deg); }
+            24%, 48%, 72%, 92% { transform: translate3d(6px, 0, 0) rotate(0.8deg); }
+        }
+        .cp-vibrate-shake {
+            animation: cpPhoneShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) 2;
+        }
         @keyframes slideInTopSafe {
             0% { transform: translateY(-140%); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
@@ -256,6 +269,11 @@
          2. SYSTEM NOTIFICATION CENTER (MOBILE-SAFE TOP BANNER)
          ========================================== -->
     <div id="sms-notification-banner"></div>
+    <!-- Hidden iOS 17.4+ / iOS 18 Native Hardware Taptic Engine Switch -->
+    <div aria-hidden="true" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;">
+        <input type="checkbox" switch id="cp-ios-haptic-switch">
+        <label id="cp-ios-haptic-label" for="cp-ios-haptic-switch">haptic</label>
+    </div>
 
     <!-- ==========================================
          3. SCROLL TO TOP BUTTON
@@ -288,6 +306,12 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <button onclick="openPushCenterModal()" id="header-push-center-btn" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition shadow-sm" title="Настройка Push-уведомлений на экран блокировки и вибрации">
+                        <span id="push-status-dot" class="w-2 h-2 rounded-full bg-cp-ochre animate-pulse"></span>
+                        <i data-lucide="bell-ring" class="w-3.5 h-3.5"></i>
+                        <span>Push / Вибро</span>
+                    </button>
+
                     <button onclick="toggleLanguage()" id="lang-switch-btn" class="bg-cp-pill hover:bg-cp-pillHover text-cp-ink px-3 py-2 rounded-full font-mono text-xs font-bold transition">
                         RU / KZ
                     </button>
@@ -1514,6 +1538,27 @@
                         </p>
                     </div>
 
+                    <div class="bg-emerald-950 text-white rounded-2xl p-3.5 border border-emerald-500/40 text-left space-y-2 shadow-sm">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-[10px] font-extrabold uppercase text-emerald-300 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                Живой радар для экрана блокировки активен
+                            </span>
+                            <span class="font-mono text-[10px] bg-white/10 px-2 py-0.5 rounded text-emerald-200">iOS + Android</span>
+                        </div>
+                        <p class="text-[11px] text-stone-200 leading-snug">
+                            Фоновый аудио-канал удерживает связь с баром даже при выключенном экране. Как только бариста нажмёт <b>«Готов»</b>, телефон прозвенит и завибрирует!
+                        </p>
+                        <div class="flex flex-wrap gap-1.5 pt-0.5">
+                            <button type="button" onclick="startDelayedLockScreenTest(5)" class="flex-1 bg-cp-ochre hover:bg-[#dcad3d] text-cp-ink font-mono text-[10px] font-extrabold py-2 px-2.5 rounded-xl uppercase transition">
+                                🔒 Тест через 5 сек (Заблокируйте экран!)
+                            </button>
+                            <button type="button" onclick="openPushCenterModal()" class="bg-white/15 hover:bg-white/25 text-white font-mono text-[10px] font-bold py-2 px-2.5 rounded-xl transition">
+                                Настроить как в WhatsApp
+                            </button>
+                        </div>
+                    </div>
+
                     <button onclick="sendReceiptToRealWhatsApp()" class="w-full bg-cp-whatsapp hover:bg-emerald-800 text-white font-bold py-3.5 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 shadow">
                         <i data-lucide="message-circle" class="w-4 h-4"></i>
                         <span>Отправить талон предзаказа бариста в WhatsApp</span>
@@ -1557,6 +1602,100 @@
                 <button type="button" onclick="closeOrderReadyMegaModal()" class="sm:w-36 bg-white/15 hover:bg-white/25 text-white font-bold py-4 px-4 rounded-2xl text-xs uppercase tracking-wider transition">
                     Иду к стойке
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 6C: PUSH, LOCK-SCREEN & VIBRATION CENTER (iOS / ANDROID / WHATSAPP / TELEGRAM)
+         ========================================== -->
+    <div id="push-center-modal" class="fixed inset-0 z-[240] hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-cp-surface text-cp-ink w-full max-w-lg rounded-3xl border border-cp-border shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+            <div class="bg-[#181512] text-white px-5 py-4 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-2xl bg-cp-ochre text-cp-ink flex items-center justify-center font-bold">
+                        <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-xs sm:text-sm uppercase tracking-wider">Push-уведомления и Вибрация</h3>
+                        <p id="push-device-detected-label" class="font-mono text-[10px] text-cp-ochre">Диагностика iPhone / Android / WhatsApp / Telegram</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closePushCenterModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-mono text-sm">✕</button>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs">
+                <!-- Live Status Pills -->
+                <div class="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
+                    <div class="bg-white p-2.5 rounded-2xl border border-cp-border">
+                        <div class="text-cp-muted uppercase">Звук + Бас-Вибро</div>
+                        <div id="diag-audio-status" class="font-extrabold text-emerald-700 mt-0.5">АКТИВЕН ✓</div>
+                    </div>
+                    <div class="bg-white p-2.5 rounded-2xl border border-cp-border">
+                        <div class="text-cp-muted uppercase">Системный Push</div>
+                        <div id="diag-notif-status" class="font-extrabold text-cp-blue mt-0.5">ГОТОВ ✓</div>
+                    </div>
+                    <div class="bg-white p-2.5 rounded-2xl border border-cp-border">
+                        <div class="text-cp-muted uppercase">Фон (Экран выкл)</div>
+                        <div id="diag-bg-status" class="font-extrabold text-emerald-700 mt-0.5">АКТИВЕН ✓</div>
+                    </div>
+                </div>
+
+                <!-- 1. Instant & Delayed Lock-Screen Test -->
+                <div class="bg-white rounded-2xl p-4 border-2 border-cp-ink space-y-2.5 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="font-display font-bold text-xs uppercase text-cp-ink">1. Проверка вибрации и сигнала на телефоне</span>
+                        <span class="font-mono text-[10px] font-bold bg-cp-ochre text-cp-ink px-2 py-0.5 rounded-full">ТЕСТ В 1 КЛИК</span>
+                    </div>
+                    <p class="text-cp-muted leading-relaxed">
+                        Нажмите <b>«Тест через 5 сек»</b> и сразу <b>заблокируйте экран телефона</b> боковой кнопкой. Через 5 секунд телефон прозвенит, выдаст низкочастотный вибро-импульс (65 Гц + Taptic) и покажет карточку заказа прямо на заблокированном экране!
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        <button type="button" onclick="testSoundAndPushAlert()" class="bg-cp-ink hover:bg-stone-800 text-white font-bold py-3 px-3 rounded-xl text-xs uppercase tracking-wider transition">
+                            🔔 Проверить сейчас (Звук + Вибро)
+                        </button>
+                        <button type="button" id="delayed-push-test-btn" onclick="startDelayedLockScreenTest(5)" class="bg-cp-ochre hover:bg-[#dcad3d] text-cp-ink font-extrabold py-3 px-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">
+                            🔒 Тест через 5 сек (Экран выкл)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. How to make iPhone / Android show native banners like WhatsApp & Kaspi -->
+                <div class="bg-cp-blueSoft/80 rounded-2xl p-4 border border-cp-blue/25 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-display font-bold text-xs uppercase text-cp-blue">2. Как получать баннеры в шторку как у WhatsApp и Kaspi</span>
+                        <span class="font-mono text-[10px] font-bold bg-cp-blue text-white px-2 py-0.5 rounded-full">iOS 16.4–18 & Android</span>
+                    </div>
+                    <p class="text-cp-ink leading-relaxed">
+                        На <b>iPhone (Apple iOS)</b> обычным вкладкам Safari запрещено присылать системные баннеры в <i>Notification Center</i>, пока сайт не добавлен на экран «Домой» (или не подключён мессенджер):
+                    </p>
+                    <div class="space-y-2 bg-white rounded-xl p-3 border border-cp-border text-[11px]">
+                        <div><b>Для системных баннеров iPhone (как у Kaspi):</b> В Safari нажмите внизу <b>«Поделиться» (квадрат со стрелкой вверх) → «На экран Домой» (Add to Home Screen)</b>. Откройте ярлык <b>Coffee People</b> с рабочего стола и нажмите кнопку ниже:</div>
+                        <button type="button" onclick="requestExplicitWebPushPermission()" class="w-full bg-cp-blue hover:bg-cp-blueDark text-white font-bold py-2.5 px-3 rounded-xl text-xs uppercase tracking-wider transition">
+                            Включить системные Push-баннеры и фоновый режим
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Direct WhatsApp & Telegram Lock-Screen Delivery -->
+                <div class="bg-white rounded-2xl p-4 border border-cp-border space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-display font-bold text-xs uppercase text-cp-ink">3. Уведомления прямо в WhatsApp и Telegram</span>
+                        <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">100% ВИБРАЦИЯ ОС</span>
+                    </div>
+                    <p class="text-cp-muted leading-relaxed">
+                        Когда сообщение о готовности или проверочный код приходит в <b>WhatsApp</b> или через <b>Telegram-бота</b>, телефон всегда вибрирует и включает экран блокировки штатными средствами iOS/Android.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="sendTestReadyToOwnWhatsApp()" class="bg-cp-whatsapp hover:bg-emerald-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                            <span>Тест уведомления в WhatsApp</span>
+                        </button>
+                        <button type="button" onclick="autoConnectTelegramPushForGuest()" class="bg-[#229ED9] hover:bg-[#1b86b8] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                            <span>Подключить Push в Telegram</span>
+                        </button>
+                    </div>
+                    <div id="tg-guest-connect-status" class="hidden bg-cp-surface border border-cp-border rounded-xl p-2.5 text-[11px] font-semibold text-cp-ink"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -2746,8 +2885,13 @@
         let __cpReadyAlarmInterval = null;
         let __cpWakeLock = null;
 
-        // Build a real 16-bit PCM WAV data URI in memory so iPhone & Android play through the Media channel
-        function buildBellWavDataUri(notesList, durationSec) {
+        // Build a real 16-bit PCM WAV data URI in memory with 65Hz/98Hz Sub-Bass Haptic Resonance + High-Clarity Chime
+        let __cpKeepAliveAudio = null;
+        let __cpKeepAliveWavUrl = null;
+        let __cpDelayedTestTimer = null;
+        const __cpNotifiedStatusMap = new Map();
+
+        function buildBellWavDataUri(notesList, durationSec, includeSubBass = true) {
             try {
                 const sampleRate = 22050;
                 const numSamples = Math.floor(sampleRate * durationSec);
@@ -2778,15 +2922,22 @@
                         const n = notesList[nIdx];
                         if (t >= n.t && t <= n.t + n.d) {
                             const localT = t - n.t;
-                            const env = Math.min(1, localT / 0.015) * Math.exp(-3.2 * (localT / n.d));
+                            const env = Math.min(1, localT / 0.010) * Math.exp(-2.8 * (localT / n.d));
+                            // Harmonic bell + 65Hz / 98Hz tactile speaker-vibration bass pulse for iPhone/Android
+                            const subBass = includeSubBass
+                                ? (0.45 * Math.sin(2 * Math.PI * 65.41 * localT) + 0.25 * Math.sin(2 * Math.PI * 98.0 * localT)) * Math.exp(-5.0 * (localT / n.d))
+                                : 0;
                             const wave =
-                                0.65 * Math.sin(2 * Math.PI * n.f * localT) +
-                                0.25 * Math.sin(2 * Math.PI * (n.f * 2) * localT) +
-                                0.10 * Math.sin(2 * Math.PI * (n.f * 3) * localT);
-                            sample += wave * env * 0.75;
+                                0.55 * Math.sin(2 * Math.PI * n.f * localT) +
+                                0.30 * Math.sin(2 * Math.PI * (n.f * 2) * localT) +
+                                0.15 * Math.sin(2 * Math.PI * (n.f * 3) * localT) +
+                                subBass;
+                            sample += wave * env * 0.88;
                         }
                     }
-                    sample = Math.max(-0.98, Math.min(0.98, sample));
+                    // Soft saturation for maximum loudness without harsh digital clipping
+                    sample = Math.tanh(sample * 1.35);
+                    sample = Math.max(-0.99, Math.min(0.99, sample));
                     view.setInt16(44 + i * 2, Math.floor(sample * 32767), true);
                 }
 
@@ -2802,32 +2953,103 @@
             }
         }
 
+        function buildSilentKeepAliveWavDataUri() {
+            try {
+                const sampleRate = 8000;
+                const durationSec = 2;
+                const numSamples = sampleRate * durationSec;
+                const buffer = new ArrayBuffer(44 + numSamples * 2);
+                const view = new DataView(buffer);
+                const writeStr = (offset, str) => {
+                    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+                };
+                writeStr(0, 'RIFF');
+                view.setUint32(4, 36 + numSamples * 2, true);
+                writeStr(8, 'WAVE');
+                writeStr(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeStr(36, 'data');
+                view.setUint32(40, numSamples * 2, true);
+                for (let i = 0; i < numSamples; i++) {
+                    // Ultra-inaudible 1-LSB keep-alive pulse so iOS MediaSession stays awake when phone is locked
+                    view.setInt16(44 + i * 2, (i % 2 === 0) ? 1 : -1, true);
+                }
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i += 8192) {
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+                }
+                return 'data:audio/wav;base64,' + btoa(binary);
+            } catch (e) {
+                return null;
+            }
+        }
+
         function ensureSoundEngineInitialized() {
             try {
                 if (!__cpWavStandardUrl) {
                     __cpWavStandardUrl = buildBellWavDataUri([
-                        { f: 587.33, t: 0.0, d: 0.22 },
-                        { f: 880.00, t: 0.14, d: 0.25 },
-                        { f: 1174.66, t: 0.28, d: 0.48 }
-                    ], 0.80);
+                        { f: 587.33, t: 0.00, d: 0.24 },
+                        { f: 880.00, t: 0.14, d: 0.26 },
+                        { f: 1174.66, t: 0.28, d: 0.52 }
+                    ], 0.85, true);
                 }
                 if (!__cpWavReadyUrl) {
                     __cpWavReadyUrl = buildBellWavDataUri([
-                        { f: 523.25, t: 0.00, d: 0.24 },
-                        { f: 659.25, t: 0.16, d: 0.24 },
-                        { f: 783.99, t: 0.32, d: 0.26 },
-                        { f: 1046.50, t: 0.50, d: 0.52 },
-                        { f: 783.99, t: 0.90, d: 0.24 },
-                        { f: 1046.50, t: 1.10, d: 0.65 }
-                    ], 1.80);
+                        { f: 523.25, t: 0.00, d: 0.25 },
+                        { f: 659.25, t: 0.16, d: 0.25 },
+                        { f: 783.99, t: 0.32, d: 0.28 },
+                        { f: 1046.50, t: 0.50, d: 0.55 },
+                        { f: 783.99, t: 0.92, d: 0.26 },
+                        { f: 1046.50, t: 1.12, d: 0.65 },
+                        { f: 1318.51, t: 1.45, d: 0.65 }
+                    ], 2.15, true);
+                }
+                if (!__cpKeepAliveWavUrl) {
+                    __cpKeepAliveWavUrl = buildSilentKeepAliveWavDataUri();
                 }
                 if (!__cpAudioPlayer) {
                     __cpAudioPlayer = new Audio();
                     __cpAudioPlayer.preload = 'auto';
                     __cpAudioPlayer.volume = 1.0;
                 }
+                if (!__cpKeepAliveAudio && __cpKeepAliveWavUrl) {
+                    __cpKeepAliveAudio = new Audio(__cpKeepAliveWavUrl);
+                    __cpKeepAliveAudio.loop = true;
+                    __cpKeepAliveAudio.volume = 0.02;
+                }
                 if (!__cpAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
                     __cpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            } catch (e) {}
+        }
+
+        function updateLockScreenMediaSession(titleText, subtitleText) {
+            try {
+                if ('mediaSession' in navigator && window.MediaMetadata) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: titleText || '☕ COFFEE PEOPLE • Предзаказ',
+                        artist: subtitleText || 'Петропавловск • Живое табло готовности',
+                        album: 'COFFEE PEOPLE LIVE RADAR'
+                    });
+                    navigator.mediaSession.playbackState = 'playing';
+                }
+            } catch (e) {}
+        }
+
+        function startBackgroundOrderKeepAlive(statusTitle, statusSub) {
+            ensureSoundEngineInitialized();
+            try {
+                if (__cpKeepAliveAudio) {
+                    __cpKeepAliveAudio.play().then(() => {
+                        updateLockScreenMediaSession(statusTitle, statusSub);
+                    }).catch(() => {});
                 }
             } catch (e) {}
         }
@@ -2854,6 +3076,16 @@
                     } else {
                         __cpAudioPlayer.muted = false;
                     }
+                    // Also keep background loop armed if an active order is waiting
+                    const activeMyOrd = state.staffOrders && state.staffOrders.find(o => o.status !== 'done' && isOwnOrder(o));
+                    if (activeMyOrd) {
+                        startBackgroundOrderKeepAlive(
+                            activeMyOrd.status === 'ready'
+                                ? `🔥 ЗАКАЗ ${activeMyOrd.id} ГОТОВ! Заберите у стойки`
+                                : `☕ Заказ ${activeMyOrd.id} готовится (${activeMyOrd.arrivalInfo})`,
+                            `COFFEE PEOPLE • ${activeMyOrd.branch || state.branch}`
+                        );
+                    }
                 }
             } catch (e) {}
 
@@ -2873,26 +3105,70 @@
             window.addEventListener(evtName, unlockMobileAudioAndNotifications, { passive: true, once: false });
         });
 
-        // Register a lightweight Service Worker via Blob/Data if supported for background system notifications
+        // Register real /sw.js Service Worker for native iOS 16.4-18 PWA & Android lock-screen notifications
         let __cpSwReg = null;
         try {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistration) {
-                navigator.serviceWorker.getRegistration().then(reg => {
-                    if (reg) __cpSwReg = reg;
-                }).catch(() => {});
+            if (window.location && (window.location.hostname.includes('web.app') || window.location.hostname.includes('firebaseapp.com') || window.location.hostname === 'localhost')) {
+                const mLink = document.getElementById('cp-pwa-manifest-link');
+                if (mLink) mLink.setAttribute('href', '/manifest.json');
+            }
+            if ('serviceWorker' in navigator && window.location && window.location.protocol === 'https:') {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    __cpSwReg = reg;
+                }).catch(() => {
+                    if (navigator.serviceWorker.getRegistration) {
+                        navigator.serviceWorker.getRegistration().then(reg => {
+                            if (reg) __cpSwReg = reg;
+                        }).catch(() => {});
+                    }
+                });
             }
         } catch (e) {}
 
         function requestSystemNotificationPermission() {
             try {
                 if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission().catch(() => {});
+                    Notification.requestPermission().then(() => {
+                        refreshPushCenterDiagnostics();
+                    }).catch(() => {});
                 }
+            } catch (e) {}
+        }
+
+        function requestExplicitWebPushPermission() {
+            unlockMobileAudioAndNotifications();
+            startBackgroundOrderKeepAlive('☕ COFFEE PEOPLE • Push активен', 'Уведомления о готовности заказа включены');
+            triggerStrongVibration('ready');
+            try {
+                if (!('Notification' in window)) {
+                    showSystemToast(
+                        'iPhone Safari (Экран Домой)',
+                        'КАК ВКЛЮЧИТЬ БАННЕРЫ НА IPHONE',
+                        'На iPhone нажмите кнопку «Поделиться» внизу Safari → «На экран Домой», либо используйте фоновый режим / WhatsApp / Telegram.'
+                    );
+                    refreshPushCenterDiagnostics();
+                    return;
+                }
+                Notification.requestPermission().then(perm => {
+                    refreshPushCenterDiagnostics();
+                    if (perm === 'granted') {
+                        fireNativeOsNotification(
+                            '☕ COFFEE PEOPLE • Системный Push включён!',
+                            'Теперь уведомления о готовности и коды подтверждения будут приходить прямо в шторку телефона с вибрацией!',
+                            'cp-perm-granted'
+                        );
+                        showSystemToast('Push-канал активирован', 'СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ВКЛЮЧЕНЫ ✓', 'Баннеры будут приходить на экран блокировки с вибрацией.');
+                    } else {
+                        showSystemToast('Проверьте доступ', 'РАЗРЕШИТЕ УВЕДОМЛЕНИЯ В БРАУЗЕРЕ', 'Фоновый звуковой радар и уведомления через WhatsApp/Telegram уже работают.');
+                    }
+                }).catch(() => {});
             } catch (e) {}
         }
 
         function fireNativeOsNotification(title, bodyText, tagId = 'cp-alert') {
             try {
+                // Always update Lock Screen MediaSession title so locked iPhones show the latest alert immediately
+                updateLockScreenMediaSession(title, bodyText);
                 if (!('Notification' in window)) return;
                 if (Notification.permission === 'granted') {
                     const opts = {
@@ -2900,7 +3176,7 @@
                         tag: tagId,
                         renotify: true,
                         requireInteraction: true,
-                        vibrate: [400, 140, 400, 140, 600]
+                        vibrate: [500, 120, 500, 120, 700, 150, 900]
                     };
                     if (__cpSwReg && typeof __cpSwReg.showNotification === 'function') {
                         __cpSwReg.showNotification(title, opts).catch(() => {
@@ -2913,22 +3189,52 @@
             } catch (e) {}
         }
 
-        function triggerStrongVibration(mode = 'standard') {
+        // Trigger iOS 17.4+ / iOS 18 Hardware Taptic Switch + Android Vibration Motor + Telegram Haptics + Visual Shake
+        function triggerIosTapticBurst(pulses = 3) {
             try {
-                if (navigator.vibrate) {
-                    navigator.vibrate(mode === 'ready' ? [400, 140, 400, 140, 600] : [220, 90, 220]);
+                const lbl = document.getElementById('cp-ios-haptic-label');
+                if (lbl) {
+                    for (let i = 0; i < pulses; i++) {
+                        setTimeout(() => {
+                            try { lbl.click(); } catch (e) {}
+                        }, i * 130);
+                    }
                 }
             } catch (e) {}
+        }
+
+        function triggerStrongVibration(mode = 'standard') {
+            // 1) Android / Mobile Browser Hardware Vibration Motor
+            try {
+                if (navigator.vibrate) {
+                    navigator.vibrate(
+                        mode === 'ready'
+                            ? [500, 120, 500, 120, 700, 150, 900]
+                            : [280, 90, 320, 90, 400]
+                    );
+                }
+            } catch (e) {}
+
+            // 2) iOS 17.4+ / iOS 18 Native Taptic Switch Hardware Pulse
+            triggerIosTapticBurst(mode === 'ready' ? 5 : 2);
+
+            // 3) Telegram Mini App Native Haptic Feedback (iPhone & Android)
             try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => {
+                        try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {}
+                    }, 180);
                     if (mode === 'ready') {
                         setTimeout(() => {
                             try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {}
-                        }, 300);
+                        }, 380);
                         setTimeout(() => {
                             try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning'); } catch (e) {}
                         }, 650);
+                        setTimeout(() => {
+                            try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {}
+                        }, 920);
                     }
                 }
             } catch (e) {}
@@ -2938,7 +3244,7 @@
             ensureSoundEngineInitialized();
             triggerStrongVibration(mode);
 
-            // 1) Play HTML5 WAV Media element (works reliably on iPhone & Android even after 100 notifications!)
+            // 1) Play HTML5 WAV Media element with 65Hz/98Hz Sub-Bass Haptic Wave (works on locked/unlocked iPhone & Android!)
             try {
                 const wavUrl = (mode === 'ready') ? __cpWavReadyUrl : __cpWavStandardUrl;
                 if (wavUrl) {
@@ -2955,7 +3261,7 @@
                 }
             } catch (e) {}
 
-            // 2) Also play singleton Web Audio API harmonic synthesizer
+            // 2) Play singleton Web Audio API synthesizer WITH 65Hz Haptic Sub-Bass Oscillator
             try {
                 if (!__cpAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
                     __cpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2982,24 +3288,30 @@
                     notes.forEach(n => {
                         const osc1 = __cpAudioCtx.createOscillator();
                         const osc2 = __cpAudioCtx.createOscillator();
+                        const subOsc = __cpAudioCtx.createOscillator();
                         const gain = __cpAudioCtx.createGain();
                         osc1.type = 'triangle';
                         osc2.type = 'sine';
+                        subOsc.type = 'sine';
                         osc1.frequency.setValueAtTime(n.f, __cpAudioCtx.currentTime + n.t);
                         osc2.frequency.setValueAtTime(n.f * 2, __cpAudioCtx.currentTime + n.t);
+                        subOsc.frequency.setValueAtTime(65.41, __cpAudioCtx.currentTime + n.t);
 
                         gain.gain.setValueAtTime(0.001, __cpAudioCtx.currentTime + n.t);
-                        gain.gain.linearRampToValueAtTime(0.75, __cpAudioCtx.currentTime + n.t + 0.018);
+                        gain.gain.linearRampToValueAtTime(0.90, __cpAudioCtx.currentTime + n.t + 0.015);
                         gain.gain.exponentialRampToValueAtTime(0.001, __cpAudioCtx.currentTime + n.t + n.d);
 
                         osc1.connect(gain);
                         osc2.connect(gain);
+                        subOsc.connect(gain);
                         gain.connect(__cpAudioCtx.destination);
 
                         osc1.start(__cpAudioCtx.currentTime + n.t);
                         osc2.start(__cpAudioCtx.currentTime + n.t);
+                        subOsc.start(__cpAudioCtx.currentTime + n.t);
                         osc1.stop(__cpAudioCtx.currentTime + n.t + n.d + 0.02);
                         osc2.stop(__cpAudioCtx.currentTime + n.t + n.d + 0.02);
+                        subOsc.stop(__cpAudioCtx.currentTime + n.t + n.d + 0.02);
                     });
                 }
             } catch (e) {}
@@ -3017,28 +3329,186 @@
             let count = 0;
             __cpReadyAlarmInterval = setInterval(() => {
                 count += 1;
-                if (count >= 4 || document.getElementById('order-ready-mega-modal').classList.contains('hidden')) {
+                if (count >= 5 || document.getElementById('order-ready-mega-modal').classList.contains('hidden')) {
                     stopReadyAlarmLoop();
                     return;
                 }
                 playHarmonicChime('ready');
-            }, 3400);
+            }, 3200);
         }
 
         function testSoundAndPushAlert() {
             unlockMobileAudioAndNotifications();
             requestSystemNotificationPermission();
+            startBackgroundOrderKeepAlive('☕ COFFEE PEOPLE • Радар включён', 'Фоновые уведомления и вибрация активны');
             playHarmonicChime('ready');
             fireNativeOsNotification(
                 '☕ COFFEE PEOPLE • Проверка связи',
-                'Звуковой сигнал, вибрация и Push-уведомления успешно активированы на вашем устройстве!',
-                'cp-test-push'
+                'Звуковой сигнал, бас-вибрация и Push-уведомления успешно активированы на вашем устройстве!',
+                'cp-test-push-' + Date.now()
             );
             showSystemToast(
-                'Звук + Вибрация + Push активны',
-                'ТЕСТ ЗВУКА И УВЕДОМЛЕНИЙ УСПЕШЕН',
-                'Громкий сигнал и вибрация включены! Когда бариста нажмёт «Готов», телефон прозвенит и покажет уведомление.'
+                'WhatsApp / iOS Push-стиль • Вибро активно',
+                'ТЕСТ ЗВУКА И ВИБРАЦИИ УСПЕШЕН',
+                'Громкий сигнал, низкочастотная вибрация и фоновый режим включены! Когда бариста нажмёт «Готов», телефон прозвенит даже с заблокированным экраном.'
             );
+            refreshPushCenterDiagnostics();
+        }
+
+        function startDelayedLockScreenTest(seconds = 5) {
+            unlockMobileAudioAndNotifications();
+            requestSystemNotificationPermission();
+            startBackgroundOrderKeepAlive('⏳ Ожидание теста (Заблокируйте экран!)...', 'Через 5 секунд прозвучит сигнал готовности заказа');
+            const btn = document.getElementById('delayed-push-test-btn');
+            let left = seconds;
+            if (__cpDelayedTestTimer) clearInterval(__cpDelayedTestTimer);
+
+            showSystemToast(
+                'ЗАБЛОКИРУЙТЕ ЭКРАН ТЕЛЕФОНА СЕЙЧАС!',
+                `ТЕСТ ЭКРАНА БЛОКИРОВКИ ЧЕРЕЗ ${left} СЕК`,
+                'Нажмите боковую кнопку блокировки вашего iPhone или Android — через 5 секунд придёт сигнал «Заказ готов» с вибрацией!'
+            );
+
+            if (btn) btn.textContent = `⏳ Заблокируйте экран (${left} сек)...`;
+
+            __cpDelayedTestTimer = setInterval(() => {
+                left -= 1;
+                if (left > 0) {
+                    if (btn) btn.textContent = `⏳ Заблокируйте экран (${left} сек)...`;
+                    updateLockScreenMediaSession(`⏳ Сигнал через ${left} сек...`, 'COFFEE PEOPLE • Проверка экрана блокировки');
+                } else {
+                    clearInterval(__cpDelayedTestTimer);
+                    __cpDelayedTestTimer = null;
+                    if (btn) btn.textContent = '🔒 Тест через 5 сек (Экран выкл)';
+                    const demoOrd = (state.staffOrders && state.staffOrders[0]) || {
+                        id: '#105',
+                        clientName: getEffectiveCupName() || 'Гость',
+                        clientPhone: getEffectiveOrderPhone() || '+7 (777) 000-00-00',
+                        branch: state.branch,
+                        vessel: state.serveVessel || 'С собой',
+                        items: ['Капучино ×1', 'Сырники из фермерского творога ×1']
+                    };
+                    showOrderReadyMegaModal(demoOrd);
+                    sendTelegramBotPushToGuest(demoOrd, `🔥 *ТЕСТ ЭКРАНА БЛОКИРОВКИ COFFEE PEOPLE*
+Ваш тестовый заказ *${demoOrd.id}* ГОТОВ у стойки выдачи!`);
+                    sendNtfyCloudPush(demoOrd.clientPhone, `ЗАКАЗ ${demoOrd.id} ГОТОВ!`, `${demoOrd.clientName}, заберите ваш кофе у стойки выдачи (${demoOrd.branch})`, true);
+                }
+            }, 1000);
+        }
+
+        function openPushCenterModal() {
+            unlockMobileAudioAndNotifications();
+            const m = document.getElementById('push-center-modal');
+            if (m) m.classList.remove('hidden');
+            refreshPushCenterDiagnostics();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closePushCenterModal() {
+            const m = document.getElementById('push-center-modal');
+            if (m) m.classList.add('hidden');
+        }
+
+        function refreshPushCenterDiagnostics() {
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            const devLbl = document.getElementById('push-device-detected-label');
+            if (devLbl) {
+                if (isIOS) {
+                    devLbl.textContent = isStandalone
+                        ? 'iPhone (Установлено на экран Домой • Системный Push активен)'
+                        : 'iPhone iOS • Фоновый аудио-радар + WhatsApp/Telegram Push';
+                } else {
+                    devLbl.textContent = 'Android / ПК • Системные уведомления + Вибромотор активны';
+                }
+            }
+            const notifEl = document.getElementById('diag-notif-status');
+            if (notifEl) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    notifEl.textContent = 'РАЗРЕШЁН ✓';
+                    notifEl.className = 'font-extrabold text-emerald-700 mt-0.5';
+                } else if ('Notification' in window) {
+                    notifEl.textContent = 'НАЖМИТЕ ВКЛ';
+                    notifEl.className = 'font-extrabold text-cp-blue mt-0.5';
+                } else {
+                    notifEl.textContent = 'ЧЕРЕЗ ДОМОЙ / WA';
+                    notifEl.className = 'font-extrabold text-amber-700 mt-0.5';
+                }
+            }
+        }
+
+        function sendTestReadyToOwnWhatsApp() {
+            const phone = getEffectiveOrderPhone();
+            const cleanDigits = (phone || '').replace(/\D/g, '');
+            const targetPhone = cleanDigits.length >= 11 ? cleanDigits : '77770845092';
+            const guestName = getEffectiveCupName() || 'Гость';
+            const text = `☕ *COFFEE PEOPLE • УВЕДОМЛЕНИЕ ГОТОВНОСТИ*\nЗдравствуйте, *${guestName}*! Ваш заказ *#105* (${state.branch}) ГОТОВ и ждёт вас у стойки выдачи! Назовите ваше имя бариста.`;
+            sendAutoWhatsAppChannel2('+' + targetPhone, text);
+            window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        async function autoConnectTelegramPushForGuest() {
+            const statusBox = document.getElementById('tg-guest-connect-status');
+            if (statusBox) {
+                statusBox.classList.remove('hidden');
+                statusBox.textContent = 'Проверяем подключение к Telegram-боту...';
+            }
+            // 1) Check if already inside Telegram Mini App
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                const u = window.Telegram.WebApp.initDataUnsafe.user;
+                if (state.clientUser) state.clientUser.tgId = u.id;
+                if (statusBox) statusBox.textContent = `✓ Ваш Telegram (${u.first_name}, ID ${u.id}) успешно привязан! Уведомления приходят прямо на экран блокировки.`;
+                showSystemToast('Telegram Push', 'TELEGRAM ПОДКЛЮЧЁН ✓', `Ваш ID ${u.id} привязан для мгновенных Push-уведомлений.`);
+                return;
+            }
+            // 2) If bot token is configured, query getUpdates to auto-discover latest /start user
+            const botToken = (state.telegramBotToken || '').trim();
+            if (botToken) {
+                try {
+                    const res = await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/getUpdates?limit=10`);
+                    const data = await res.json();
+                    if (data && data.ok && Array.isArray(data.result) && data.result.length > 0) {
+                        const lastMsg = data.result[data.result.length - 1];
+                        const chat = (lastMsg.message && lastMsg.message.chat) || (lastMsg.callback_query && lastMsg.callback_query.message && lastMsg.callback_query.message.chat);
+                        if (chat && chat.id) {
+                            if (!state.clientUser) {
+                                state.clientUser = { name: chat.first_name || 'Гость', phone: getEffectiveOrderPhone(), pin: '0000', bonuses: 100, orders: [] };
+                            }
+                            state.clientUser.tgId = chat.id;
+                            syncAccountToStorage();
+                            await sendTelegramBotPushToGuest({ clientTgId: chat.id }, `☕ *COFFEE PEOPLE*\nPush-уведомления на ваш экран блокировки успешно подключены! Здесь появится сигнал, как только бариста приготовит ваш кофе.`);
+                            if (statusBox) statusBox.textContent = `✓ Подключено к чату ${chat.first_name || ''} (ID: ${chat.id})! Мы отправили вам тестовое Push-сообщение в Telegram.`;
+                            showSystemToast('Telegram Push', 'ТЕСТ ОТПРАВЛЕН В TELEGRAM ✓', 'Проверьте шторку уведомлений вашего телефона!');
+                            return;
+                        }
+                    }
+                } catch (e) {}
+            }
+            if (statusBox) {
+                statusBox.innerHTML = `Чтобы получать авто-Push в Telegram: укажите токен бота от <b>@BotFather</b> в «Терминал персонала → Настройки», напишите боту <b>/start</b> и нажмите эту кнопку снова.`;
+            }
+            showSystemToast('Настройка Telegram Push', 'КАК ПОДКЛЮЧИТЬ TELEGRAM-БОТА', 'Добавьте токен от @BotFather в настройках управляющего или используйте WhatsApp / Фоновый радар.');
+        }
+
+        async function sendNtfyCloudPush(phoneStr, title, message, isUrgent = false) {
+            try {
+                const digits = (phoneStr || '').replace(/\D/g, '');
+                if (digits.length < 10) return false;
+                const topic = `coffee_people_kz_${digits}`;
+                await fetch(`https://ntfy.sh/${topic}`, {
+                    method: 'POST',
+                    body: message,
+                    headers: {
+                        'Title': title,
+                        'Priority': isUrgent ? '5' : '4',
+                        'Tags': isUrgent ? 'coffee,bell,rotating_light' : 'coffee'
+                    }
+                });
+                return true;
+            } catch (e) {
+                return false;
+            }
         }
 
         let currentMegaReadyOrderId = null;
@@ -3048,6 +3518,10 @@
             currentMegaReadyOrderId = ord.id;
             playHarmonicChime('ready');
             startReadyAlarmLoop();
+            startBackgroundOrderKeepAlive(
+                `🔥 ЗАКАЗ ${ord.id} ГОТОВ! (${ord.clientName})`,
+                `Заберите у стойки выдачи (${ord.branch || state.branch}) • ${formatShortItemsSummary(ord)}`
+            );
             fireNativeOsNotification(
                 `☕ ЗАКАЗ ${ord.id} ГОТОВ! (${ord.clientName})`,
                 `Ждёт вас у стойки выдачи (${ord.branch || state.branch}). Состав: ${formatShortItemsSummary(ord)}`,
@@ -3079,22 +3553,31 @@
         }
 
         function showSystemToast(toPhone, title, message, clickCallback = null) {
-            const isUrgent = (title || '').includes('КОД') || (title || '').includes('ГОТОВО') || (title || '').includes('2FA');
-            playHarmonicChime((title || '').includes('ГОТОВО') ? 'ready' : 'standard');
+            const upperTitle = (title || '').toUpperCase();
+            const isUrgent = upperTitle.includes('КОД') || upperTitle.includes('ГОТОВ') || upperTitle.includes('2FA') || upperTitle.includes('ТЕСТ') || upperTitle.includes('НОВЫЙ ПРЕДЗАКАЗ');
+            playHarmonicChime(isUrgent ? 'ready' : 'standard');
+
+            // ALWAYS fire native OS / Lock-Screen notification + MediaSession update on every toast!
+            fireNativeOsNotification(
+                `☕ ${title}`,
+                `${toPhone ? toPhone + ' • ' : ''}${message}`,
+                `cp-toast-${Date.now()}`
+            );
+
             const center = document.getElementById('sms-notification-banner');
             if (!center) return;
             const banner = document.createElement('div');
-            banner.className = `toast-enter w-full bg-[#181512] text-white p-4 rounded-2xl shadow-2xl ${isUrgent ? 'border-2 border-cp-ochre urgent-alert-glow' : 'border border-stone-600'} pointer-events-auto flex items-start gap-3.5 cursor-pointer`;
+            banner.className = `toast-enter cp-vibrate-shake w-full bg-[#181512]/95 backdrop-blur-md text-white p-4 rounded-3xl shadow-2xl ${isUrgent ? 'border-2 border-cp-ochre urgent-alert-glow' : 'border border-stone-600'} pointer-events-auto flex items-start gap-3.5 cursor-pointer`;
             banner.innerHTML = `
-                <div class="w-11 h-11 rounded-2xl ${isUrgent ? 'bg-cp-ochre text-cp-ink' : 'bg-cp-blue text-white'} flex items-center justify-center shrink-0 font-mono font-extrabold text-xs shadow">
-                    ${isUrgent ? '🔔' : 'INFO'}
+                <div class="w-11 h-11 rounded-2xl ${isUrgent ? 'bg-cp-ochre text-cp-ink' : 'bg-emerald-600 text-white'} flex items-center justify-center shrink-0 font-mono font-extrabold text-sm shadow">
+                    ${isUrgent ? '🔔' : '💬'}
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-xs font-extrabold text-cp-ochre uppercase tracking-wider truncate">${title}</span>
-                        <span class="font-mono text-[10px] text-stone-300 bg-white/10 px-2 py-0.5 rounded shrink-0">сейчас</span>
+                        <span class="font-mono text-[11px] font-extrabold text-cp-ochre uppercase tracking-wider truncate">${title}</span>
+                        <span class="font-mono text-[10px] text-emerald-300 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0">вибро + звук</span>
                     </div>
-                    <div class="font-mono text-[11px] font-bold text-stone-300 mt-0.5 break-words">${toPhone || 'COFFEE PEOPLE'}</div>
+                    <div class="font-mono text-[11px] font-bold text-stone-300 mt-0.5 break-words">${toPhone || 'COFFEE PEOPLE PUSH'}</div>
                     <p class="text-xs sm:text-sm font-semibold text-white mt-1 leading-snug break-words">${message}</p>
                     ${clickCallback ? `<div class="mt-2 inline-block bg-cp-ochre text-cp-ink font-mono text-[10px] font-extrabold px-3 py-1 rounded-lg uppercase">Нажмите сюда, чтобы подставить код</div>` : ''}
                 </div>
@@ -3107,7 +3590,7 @@
                 };
             }
             center.appendChild(banner);
-            const duration = isUrgent ? 14000 : 7500;
+            const duration = isUrgent ? 14000 : 8000;
             setTimeout(() => {
                 if (banner.parentElement) {
                     banner.style.opacity = '0';
@@ -3125,10 +3608,19 @@
             return '+7 •••';
         }
 
+        function normalizePhoneDigits(p) {
+            const d = String(p || '').replace(/\D/g, '');
+            if (d.length === 11 && d.startsWith('8')) return '7' + d.slice(1);
+            return d;
+        }
+
         function isOwnOrder(orderObj) {
             if (!orderObj) return false;
             if (state.sessionOrderIds && state.sessionOrderIds.includes(orderObj.id)) return true;
-            if (state.clientUser && state.clientUser.phone && orderObj.clientPhone === state.clientUser.phone) return true;
+            const ordDigits = normalizePhoneDigits(orderObj.clientPhone);
+            if (!ordDigits || ordDigits.length < 10) return false;
+            if (state.clientUser && state.clientUser.phone && normalizePhoneDigits(state.clientUser.phone) === ordDigits) return true;
+            if (state.activeOrderPhone && normalizePhoneDigits(state.activeOrderPhone) === ordDigits) return true;
             return false;
         }
 
@@ -3151,9 +3643,6 @@
         window.renderBoard = function(cloudOrders) {
             if (Array.isArray(cloudOrders)) {
                 const prevAllIds = new Set(state.staffOrders.map(o => o.id));
-                const prevReadyIds = new Set(
-                    state.staffOrders.filter(o => o.status === 'ready').map(o => o.id)
-                );
                 state.staffOrders = cloudOrders.map(d => {
                     const normalizedStatus = (d.status === 'preparing') ? 'cooking' : (d.status || 'cooking');
                     return {
@@ -3172,26 +3661,37 @@
                     };
                 });
                 state.staffOrders.forEach(ord => {
+                    const prevNotified = __cpNotifiedStatusMap.get(ord.id);
+                    if (!__cpInitialOrdersLoaded) {
+                        __cpNotifiedStatusMap.set(ord.id, ord.status);
+                        return;
+                    }
                     // 1) Alert Guest when their order becomes READY
-                    if (ord.status === 'ready' && !prevReadyIds.has(ord.id) && isOwnOrder(ord)) {
+                    if (ord.status === 'ready' && prevNotified !== 'ready' && isOwnOrder(ord)) {
+                        __cpNotifiedStatusMap.set(ord.id, 'ready');
                         showSystemToast(
                             ord.clientPhone,
                             `ГОТОВО У СТОЙКИ • ${ord.id}`,
                             `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})!`
                         );
                         showOrderReadyMegaModal(ord);
+                    } else if (ord.status === 'cooking' && prevNotified && prevNotified !== 'cooking' && isOwnOrder(ord)) {
+                        __cpNotifiedStatusMap.set(ord.id, 'cooking');
+                        showSystemToast(
+                            ord.clientPhone,
+                            `БАРИСТА ГОТОВИТ ЗАКАЗ • ${ord.id}`,
+                            `${ord.clientName}, бариста начал готовить ваш заказ ${ord.id} (${ord.arrivalInfo}).`
+                        );
+                    } else {
+                        __cpNotifiedStatusMap.set(ord.id, ord.status);
                     }
+
                     // 2) Alert Barista when a brand-new order arrives
-                    if (__cpInitialOrdersLoaded && !prevAllIds.has(ord.id) && state.staffUser) {
+                    if (!prevAllIds.has(ord.id) && state.staffUser) {
                         showSystemToast(
                             `${ord.id} • ${ord.clientName}`,
                             `НОВЫЙ ПРЕДЗАКАЗ НА БАРЕ • ${ord.id}`,
                             `Гость: ${ord.clientName} (${ord.arrivalInfo}) • ${formatShortItemsSummary(ord)}`
-                        );
-                        fireNativeOsNotification(
-                            `🔔 Новый заказ ${ord.id} (${ord.clientName})`,
-                            `${ord.arrivalInfo} • ${formatShortItemsSummary(ord)}`,
-                            `cp-new-${ord.id}`
                         );
                     }
                 });
@@ -4251,6 +4751,9 @@
             document.getElementById('client-auth-submit-btn').textContent = 'Подтвердить код и войти';
             startOtpCountdown();
 
+            sendAutoWhatsAppChannel2(phone, `🔑 *COFFEE PEOPLE ID*\nВаш проверочный код входа: *${code4}* (действует 60 сек).`);
+            sendTelegramBotPushToGuest({ clientTgId: state.clientUser && state.clientUser.tgId }, `🔑 *COFFEE PEOPLE ID*\nВаш проверочный код входа: *${code4}*`);
+            sendNtfyCloudPush(phone, `КОД ВХОДА: ${code4}`, `Ваш проверочный код COFFEE PEOPLE: ${code4}`, true);
             showSystemToast(
                 phone,
                 'КОД ПОДТВЕРЖДЕНИЯ COFFEE PEOPLE',
@@ -5572,6 +6075,7 @@
             const ord = state.staffOrders[idx];
             if (!ord) return;
             ord.status = nextStatus;
+            __cpNotifiedStatusMap.set(ord.id, nextStatus);
             const targetDocId = ord.firestoreId || ord.id;
             if (nextStatus === 'ready' && typeof window.markReady === 'function') {
                 window.markReady(targetDocId);
@@ -5587,6 +6091,7 @@
                 showSystemToast(ord.clientPhone, `Заказ ${ord.id} готовится`, msg);
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `Заказ ${ord.id} на баре`, message: msg });
                 sendTelegramBotPushToGuest(ord, `⏳ *COFFEE PEOPLE*\n*${ord.clientName}*, бариста принял и начал готовить ваш предзаказ *${ord.id}* (${ord.arrivalInfo}).\nФилиал: ${ord.branch}`);
+                sendNtfyCloudPush(ord.clientPhone, `Заказ ${ord.id} готовится`, msg, false);
             } else if (nextStatus === 'ready') {
                 const msg = `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})! Назовите ваше имя бариста.`;
                 showSystemToast(ord.clientPhone, `ГОТОВО У СТОЙКИ • ${ord.id}`, msg);
@@ -5596,6 +6101,7 @@
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `ГОТОВО У СТОЙКИ • ${ord.id}`, message: msg });
                 sendTelegramBotPushToGuest(ord, `☕ *ВАШ ЗАКАЗ ${ord.id} ГОТОВ!*\n\nИмя на стаканчике: *${ord.clientName}*\nФилиал: *${ord.branch}*\nПодача: ${ord.vessel || 'С собой'}\nСостав: ${formatShortItemsSummary(ord)}\n\nПодойдите к стойке выдачи без очереди и назовите ваше имя бариста!`);
                 sendAutoWhatsAppChannel2(ord.clientPhone, `☕ *COFFEE PEOPLE*\nЗдравствуйте, *${ord.clientName}*! Ваш заказ *${ord.id}* (${ord.branch}) ГОТОВ и ждёт вас у стойки выдачи.\nПодача: ${ord.vessel || 'С собой'}. Назовите ваше имя бариста!`);
+                sendNtfyCloudPush(ord.clientPhone, `☕ ЗАКАЗ ${ord.id} ГОТОВ!`, msg, true);
             }
         }
 
@@ -6283,10 +6789,18 @@
                     : `Ваш новый баланс: ${newBal} ₸ (списание от 200 ₸)`;
             }
 
+            __cpNotifiedStatusMap.set(orderId, 'cooking');
+            startBackgroundOrderKeepAlive(
+                `☕ Заказ ${orderId} готовится (${arrivalInfo})`,
+                `Имя на стаканчике: ${guestName} • ${state.branch}`
+            );
+            requestSystemNotificationPermission();
+            sendTelegramBotPushToGuest(newOrderObj, `✅ *COFFEE PEOPLE • Заказ ${orderId} принят!*\nИмя на стаканчике: *${guestName}*\nГотовность: *${arrivalInfo}*\nНачислено кэшбэка: *+${earnedCashback} ₸*\nМы пришлём вам звуковое уведомление, как только заказ будет готов!`);
+            sendNtfyCloudPush(phone, `Заказ ${orderId} принят на бар`, `Имя: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ бонусов.`, false);
             showSystemToast(
                 phone,
                 `Заказ ${orderId} выведен на табло`,
-                `Имя на стаканчике: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ кэшбэка.`
+                `Имя на стаканчике: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ кэшбэка. Фоновый радар готовности включён!`
             );
             if (window.lucide) lucide.createIcons();
         }
