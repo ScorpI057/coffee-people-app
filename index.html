@@ -383,10 +383,12 @@
                             Онлайн-табло выдачи заказов у бара
                         </h2>
                     </div>
-                    <div class="flex items-center gap-2 text-[11px] font-mono text-cp-muted">
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-cp-muted">
                         <span id="board-branch-indicator">ул. Ауэзова, 150</span>
                         <span>•</span>
-                        <span>Вызов по имени на стаканчике</span>
+                        <button type="button" onclick="testSoundAndPushAlert()" class="bg-cp-ochreSoft hover:bg-cp-ochre border border-cp-ochre text-cp-ink font-sans font-bold text-[11px] px-2.5 py-1 rounded-full transition flex items-center gap-1 shadow-sm">
+                            <span>🔊 Проверить звук и Push</span>
+                        </button>
                     </div>
                 </div>
 
@@ -2173,6 +2175,7 @@
             firebaseSenderId: '494140120586',
             firebaseConnected: true,
             kaspiPayUrl: 'https://kaspi.kz/transfers',
+            telegramBotToken: '',
             greenApiInstanceId: '',
             greenApiToken: '',
             mobizonApiKey: '',
@@ -2226,6 +2229,7 @@
             state.firebaseAppId = '1:494140120586:web:9c61497125f6f6985449f3';
             state.firebaseSenderId = '494140120586';
             state.kaspiPayUrl = localStorage.getItem('cp_kaspi_pay_url') || 'https://kaspi.kz/transfers';
+            state.telegramBotToken = localStorage.getItem('cp_tg_bot_token') || '';
             state.greenApiInstanceId = localStorage.getItem('cp_green_id_instance') || '';
             state.greenApiToken = localStorage.getItem('cp_green_api_token') || '';
             state.mobizonApiKey = localStorage.getItem('cp_mobizon_api_key') || '';
@@ -2537,57 +2541,308 @@
             setTimeout(() => pre.remove(), 450);
         }
 
-        // 6. LOUD MULTI-TONE AUDIO CHIME & HIGH-VISIBILITY NOTIFICATION CENTER
-        function playHarmonicChime(mode = 'standard') {
+        // 6. BULLETPROOF MOBILE/DESKTOP SOUND ENGINE (SINGLETON AUDIOCONTEXT + 16-BIT WAV MEDIA PLAYER + PUSH + WAKE LOCK)
+        let __cpAudioCtx = null;
+        let __cpWavStandardUrl = null;
+        let __cpWavReadyUrl = null;
+        let __cpAudioPlayer = null;
+        let __cpAudioUnlocked = false;
+        let __cpReadyAlarmInterval = null;
+        let __cpWakeLock = null;
+
+        // Build a real 16-bit PCM WAV data URI in memory so iPhone & Android play through the Media channel
+        function buildBellWavDataUri(notesList, durationSec) {
+            try {
+                const sampleRate = 22050;
+                const numSamples = Math.floor(sampleRate * durationSec);
+                const buffer = new ArrayBuffer(44 + numSamples * 2);
+                const view = new DataView(buffer);
+
+                const writeStr = (offset, str) => {
+                    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+                };
+                writeStr(0, 'RIFF');
+                view.setUint32(4, 36 + numSamples * 2, true);
+                writeStr(8, 'WAVE');
+                writeStr(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true); // PCM
+                view.setUint16(22, 1, true); // Mono
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeStr(36, 'data');
+                view.setUint32(40, numSamples * 2, true);
+
+                for (let i = 0; i < numSamples; i++) {
+                    const t = i / sampleRate;
+                    let sample = 0;
+                    for (let nIdx = 0; nIdx < notesList.length; nIdx++) {
+                        const n = notesList[nIdx];
+                        if (t >= n.t && t <= n.t + n.d) {
+                            const localT = t - n.t;
+                            const env = Math.min(1, localT / 0.015) * Math.exp(-3.2 * (localT / n.d));
+                            const wave =
+                                0.65 * Math.sin(2 * Math.PI * n.f * localT) +
+                                0.25 * Math.sin(2 * Math.PI * (n.f * 2) * localT) +
+                                0.10 * Math.sin(2 * Math.PI * (n.f * 3) * localT);
+                            sample += wave * env * 0.75;
+                        }
+                    }
+                    sample = Math.max(-0.98, Math.min(0.98, sample));
+                    view.setInt16(44 + i * 2, Math.floor(sample * 32767), true);
+                }
+
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                const chunkSize = 8192;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+                }
+                return 'data:audio/wav;base64,' + btoa(binary);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function ensureSoundEngineInitialized() {
+            try {
+                if (!__cpWavStandardUrl) {
+                    __cpWavStandardUrl = buildBellWavDataUri([
+                        { f: 587.33, t: 0.0, d: 0.22 },
+                        { f: 880.00, t: 0.14, d: 0.25 },
+                        { f: 1174.66, t: 0.28, d: 0.48 }
+                    ], 0.80);
+                }
+                if (!__cpWavReadyUrl) {
+                    __cpWavReadyUrl = buildBellWavDataUri([
+                        { f: 523.25, t: 0.00, d: 0.24 },
+                        { f: 659.25, t: 0.16, d: 0.24 },
+                        { f: 783.99, t: 0.32, d: 0.26 },
+                        { f: 1046.50, t: 0.50, d: 0.52 },
+                        { f: 783.99, t: 0.90, d: 0.24 },
+                        { f: 1046.50, t: 1.10, d: 0.65 }
+                    ], 1.80);
+                }
+                if (!__cpAudioPlayer) {
+                    __cpAudioPlayer = new Audio();
+                    __cpAudioPlayer.preload = 'auto';
+                    __cpAudioPlayer.volume = 1.0;
+                }
+                if (!__cpAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
+                    __cpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            } catch (e) {}
+        }
+
+        function unlockMobileAudioAndNotifications() {
+            ensureSoundEngineInitialized();
+            try {
+                if (__cpAudioCtx && __cpAudioCtx.state === 'suspended') {
+                    __cpAudioCtx.resume();
+                }
+                if (!__cpAudioUnlocked && __cpAudioPlayer && __cpWavStandardUrl) {
+                    __cpAudioUnlocked = true;
+                    __cpAudioPlayer.muted = true;
+                    __cpAudioPlayer.src = __cpWavStandardUrl;
+                    const p = __cpAudioPlayer.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(() => {
+                            __cpAudioPlayer.pause();
+                            __cpAudioPlayer.currentTime = 0;
+                            __cpAudioPlayer.muted = false;
+                        }).catch(() => {
+                            __cpAudioPlayer.muted = false;
+                        });
+                    } else {
+                        __cpAudioPlayer.muted = false;
+                    }
+                }
+            } catch (e) {}
+
+            // Request Screen Wake Lock so phone doesn't sleep while waiting for an order
+            try {
+                if ('wakeLock' in navigator && !__cpWakeLock) {
+                    navigator.wakeLock.request('screen').then(wl => {
+                        __cpWakeLock = wl;
+                        wl.addEventListener('release', () => { __cpWakeLock = null; });
+                    }).catch(() => {});
+                }
+            } catch (e) {}
+        }
+
+        // Unlock audio on the very first touch or click anywhere on the page
+        ['touchstart', 'pointerdown', 'click'].forEach(evtName => {
+            window.addEventListener(evtName, unlockMobileAudioAndNotifications, { passive: true, once: false });
+        });
+
+        // Register a lightweight Service Worker via Blob/Data if supported for background system notifications
+        let __cpSwReg = null;
+        try {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistration) {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg) __cpSwReg = reg;
+                }).catch(() => {});
+            }
+        } catch (e) {}
+
+        function requestSystemNotificationPermission() {
+            try {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().catch(() => {});
+                }
+            } catch (e) {}
+        }
+
+        function fireNativeOsNotification(title, bodyText, tagId = 'cp-alert') {
+            try {
+                if (!('Notification' in window)) return;
+                if (Notification.permission === 'granted') {
+                    const opts = {
+                        body: bodyText,
+                        tag: tagId,
+                        renotify: true,
+                        requireInteraction: true,
+                        vibrate: [400, 140, 400, 140, 600]
+                    };
+                    if (__cpSwReg && typeof __cpSwReg.showNotification === 'function') {
+                        __cpSwReg.showNotification(title, opts).catch(() => {
+                            try { new Notification(title, opts); } catch (e) {}
+                        });
+                    } else {
+                        new Notification(title, opts);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function triggerStrongVibration(mode = 'standard') {
             try {
                 if (navigator.vibrate) {
-                    navigator.vibrate(mode === 'ready' ? [300, 120, 300, 120, 450] : [200, 80, 200]);
+                    navigator.vibrate(mode === 'ready' ? [400, 140, 400, 140, 600] : [220, 90, 220]);
                 }
+            } catch (e) {}
+            try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    if (mode === 'ready') {
+                        setTimeout(() => {
+                            try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {}
+                        }, 300);
+                        setTimeout(() => {
+                            try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning'); } catch (e) {}
+                        }, 650);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function playHarmonicChime(mode = 'standard') {
+            ensureSoundEngineInitialized();
+            triggerStrongVibration(mode);
+
+            // 1) Play HTML5 WAV Media element (works reliably on iPhone & Android even after 100 notifications!)
+            try {
+                const wavUrl = (mode === 'ready') ? __cpWavReadyUrl : __cpWavStandardUrl;
+                if (wavUrl) {
+                    const bell = new Audio(wavUrl);
+                    bell.volume = 1.0;
+                    bell.play().catch(() => {
+                        if (__cpAudioPlayer) {
+                            __cpAudioPlayer.muted = false;
+                            __cpAudioPlayer.volume = 1.0;
+                            __cpAudioPlayer.src = wavUrl;
+                            __cpAudioPlayer.play().catch(() => {});
+                        }
+                    });
                 }
             } catch (e) {}
 
+            // 2) Also play singleton Web Audio API harmonic synthesizer
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const notes = mode === 'ready'
-                    ? [
-                        { f: 523.25, t: 0.0, d: 0.22 },
-                        { f: 659.25, t: 0.16, d: 0.22 },
-                        { f: 783.99, t: 0.32, d: 0.25 },
-                        { f: 1046.50, t: 0.50, d: 0.45 },
-                        { f: 783.99, t: 0.85, d: 0.22 },
-                        { f: 1046.50, t: 1.05, d: 0.55 }
-                      ]
-                    : [
-                        { f: 587.33, t: 0.0, d: 0.18 },
-                        { f: 783.99, t: 0.14, d: 0.18 },
-                        { f: 1046.50, t: 0.28, d: 0.38 }
-                      ];
+                if (!__cpAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
+                    __cpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (__cpAudioCtx) {
+                    if (__cpAudioCtx.state === 'suspended') {
+                        __cpAudioCtx.resume().catch(() => {});
+                    }
+                    const notes = mode === 'ready'
+                        ? [
+                            { f: 523.25, t: 0.0, d: 0.24 },
+                            { f: 659.25, t: 0.16, d: 0.24 },
+                            { f: 783.99, t: 0.32, d: 0.26 },
+                            { f: 1046.50, t: 0.50, d: 0.48 },
+                            { f: 783.99, t: 0.88, d: 0.24 },
+                            { f: 1046.50, t: 1.08, d: 0.58 }
+                          ]
+                        : [
+                            { f: 587.33, t: 0.0, d: 0.20 },
+                            { f: 880.00, t: 0.14, d: 0.22 },
+                            { f: 1174.66, t: 0.28, d: 0.42 }
+                          ];
 
-                notes.forEach(n => {
-                    const osc1 = ctx.createOscillator();
-                    const osc2 = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc1.type = 'triangle';
-                    osc2.type = 'sine';
-                    osc1.frequency.setValueAtTime(n.f, ctx.currentTime + n.t);
-                    osc2.frequency.setValueAtTime(n.f * 2, ctx.currentTime + n.t);
+                    notes.forEach(n => {
+                        const osc1 = __cpAudioCtx.createOscillator();
+                        const osc2 = __cpAudioCtx.createOscillator();
+                        const gain = __cpAudioCtx.createGain();
+                        osc1.type = 'triangle';
+                        osc2.type = 'sine';
+                        osc1.frequency.setValueAtTime(n.f, __cpAudioCtx.currentTime + n.t);
+                        osc2.frequency.setValueAtTime(n.f * 2, __cpAudioCtx.currentTime + n.t);
 
-                    gain.gain.setValueAtTime(0.001, ctx.currentTime + n.t);
-                    gain.gain.linearRampToValueAtTime(0.55, ctx.currentTime + n.t + 0.02);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + n.t + n.d);
+                        gain.gain.setValueAtTime(0.001, __cpAudioCtx.currentTime + n.t);
+                        gain.gain.linearRampToValueAtTime(0.75, __cpAudioCtx.currentTime + n.t + 0.018);
+                        gain.gain.exponentialRampToValueAtTime(0.001, __cpAudioCtx.currentTime + n.t + n.d);
 
-                    osc1.connect(gain);
-                    osc2.connect(gain);
-                    gain.connect(ctx.destination);
+                        osc1.connect(gain);
+                        osc2.connect(gain);
+                        gain.connect(__cpAudioCtx.destination);
 
-                    osc1.start(ctx.currentTime + n.t);
-                    osc2.start(ctx.currentTime + n.t);
-                    osc1.stop(ctx.currentTime + n.t + n.d + 0.02);
-                    osc2.stop(ctx.currentTime + n.t + n.d + 0.02);
-                });
+                        osc1.start(__cpAudioCtx.currentTime + n.t);
+                        osc2.start(__cpAudioCtx.currentTime + n.t);
+                        osc1.stop(__cpAudioCtx.currentTime + n.t + n.d + 0.02);
+                        osc2.stop(__cpAudioCtx.currentTime + n.t + n.d + 0.02);
+                    });
+                }
             } catch (e) {}
+        }
+
+        function stopReadyAlarmLoop() {
+            if (__cpReadyAlarmInterval) {
+                clearInterval(__cpReadyAlarmInterval);
+                __cpReadyAlarmInterval = null;
+            }
+        }
+
+        function startReadyAlarmLoop() {
+            stopReadyAlarmLoop();
+            let count = 0;
+            __cpReadyAlarmInterval = setInterval(() => {
+                count += 1;
+                if (count >= 4 || document.getElementById('order-ready-mega-modal').classList.contains('hidden')) {
+                    stopReadyAlarmLoop();
+                    return;
+                }
+                playHarmonicChime('ready');
+            }, 3400);
+        }
+
+        function testSoundAndPushAlert() {
+            unlockMobileAudioAndNotifications();
+            requestSystemNotificationPermission();
+            playHarmonicChime('ready');
+            fireNativeOsNotification(
+                '☕ COFFEE PEOPLE • Проверка связи',
+                'Звуковой сигнал, вибрация и Push-уведомления успешно активированы на вашем устройстве!',
+                'cp-test-push'
+            );
+            showSystemToast(
+                'Звук + Вибрация + Push активны',
+                'ТЕСТ ЗВУКА И УВЕДОМЛЕНИЙ УСПЕШЕН',
+                'Громкий сигнал и вибрация включены! Когда бариста нажмёт «Готов», телефон прозвенит и покажет уведомление.'
+            );
         }
 
         let currentMegaReadyOrderId = null;
@@ -2596,6 +2851,12 @@
             if (!ord) return;
             currentMegaReadyOrderId = ord.id;
             playHarmonicChime('ready');
+            startReadyAlarmLoop();
+            fireNativeOsNotification(
+                `☕ ЗАКАЗ ${ord.id} ГОТОВ! (${ord.clientName})`,
+                `Ждёт вас у стойки выдачи (${ord.branch || state.branch}). Состав: ${formatShortItemsSummary(ord)}`,
+                `cp-ready-${ord.id}`
+            );
             const modal = document.getElementById('order-ready-mega-modal');
             const titleEl = document.getElementById('mega-ready-title');
             const subEl = document.getElementById('mega-ready-sub');
@@ -2608,6 +2869,7 @@
         }
 
         function closeOrderReadyMegaModal() {
+            stopReadyAlarmLoop();
             const modal = document.getElementById('order-ready-mega-modal');
             if (modal) modal.classList.add('hidden');
         }
@@ -2689,8 +2951,10 @@
             return vesselStr.includes('керамике') || vesselStr.includes('В зале') ? 'В керамике' : 'С собой';
         }
 
+        let __cpInitialOrdersLoaded = false;
         window.renderBoard = function(cloudOrders) {
             if (Array.isArray(cloudOrders)) {
+                const prevAllIds = new Set(state.staffOrders.map(o => o.id));
                 const prevReadyIds = new Set(
                     state.staffOrders.filter(o => o.status === 'ready').map(o => o.id)
                 );
@@ -2712,6 +2976,7 @@
                     };
                 });
                 state.staffOrders.forEach(ord => {
+                    // 1) Alert Guest when their order becomes READY
                     if (ord.status === 'ready' && !prevReadyIds.has(ord.id) && isOwnOrder(ord)) {
                         showSystemToast(
                             ord.clientPhone,
@@ -2720,7 +2985,21 @@
                         );
                         showOrderReadyMegaModal(ord);
                     }
+                    // 2) Alert Barista when a brand-new order arrives
+                    if (__cpInitialOrdersLoaded && !prevAllIds.has(ord.id) && state.staffUser) {
+                        showSystemToast(
+                            `${ord.id} • ${ord.clientName}`,
+                            `НОВЫЙ ПРЕДЗАКАЗ НА БАРЕ • ${ord.id}`,
+                            `Гость: ${ord.clientName} (${ord.arrivalInfo}) • ${formatShortItemsSummary(ord)}`
+                        );
+                        fireNativeOsNotification(
+                            `🔔 Новый заказ ${ord.id} (${ord.clientName})`,
+                            `${ord.arrivalInfo} • ${formatShortItemsSummary(ord)}`,
+                            `cp-new-${ord.id}`
+                        );
+                    }
                 });
+                __cpInitialOrdersLoaded = true;
                 try {
                     localStorage.setItem(STORAGE_KEY_REAL_ORDERS, JSON.stringify(state.staffOrders));
                 } catch (e) {}
@@ -4250,9 +4529,14 @@
                                     <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Firebase appId</label>
                                     <input id="staff-firebase-appid-inp" type="text" value="${state.firebaseAppId || ''}" placeholder="1:123456789:web:abcdef" class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
+                                <div class="sm:col-span-2 bg-cp-blueSoft/80 border border-cp-blue/25 rounded-xl p-3 space-y-1.5">
+                                    <label class="block text-[10px] font-bold uppercase text-cp-blue">Токен Telegram-бота (от @BotFather) — для Push на выключенный/заблокированный экран iPhone и Android</label>
+                                    <input id="staff-tg-bot-token-inp" type="password" value="${state.telegramBotToken || ''}" placeholder="Например: 7123456789:AAH_xYz..." class="w-full bg-white border border-cp-border rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                    <p class="text-[11px] text-cp-muted leading-snug">Когда гость открывает мини-приложение в Telegram, бот запоминает его <span class="font-mono">chat_id</span>. С этим токеном при нажатии «2. Готов» бот присылает гостю настоящее Push-сообщение с вибрацией прямо на заблокированный экран телефона!</p>
+                                </div>
                                 <div>
                                     <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Ссылка Kaspi Pay (Вариант А)</label>
-                                    <input id="staff-kaspi-url-inp" type="text" value="${state.kaspiPayUrl || 'https://pay.kaspi.kz/'}" placeholder="https://pay.kaspi.kz/pay/..." class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
+                                    <input id="staff-kaspi-url-inp" type="text" value="${state.kaspiPayUrl || 'https://kaspi.kz/transfers'}" placeholder="https://pay.kaspi.kz/pay/..." class="w-full bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Канал 2: Green-API idInstance (WhatsApp)</label>
@@ -4356,10 +4640,15 @@
             const fbInp = document.getElementById('staff-firebase-id-inp');
             const apiInp = document.getElementById('staff-firebase-apikey-inp');
             const appInp = document.getElementById('staff-firebase-appid-inp');
+            const tgTokInp = document.getElementById('staff-tg-bot-token-inp');
             const kaspiInp = document.getElementById('staff-kaspi-url-inp');
             const greenIdInp = document.getElementById('staff-green-id-inp');
             const greenTokInp = document.getElementById('staff-green-token-inp');
             const mbInp = document.getElementById('staff-mobizon-key-inp');
+            if (tgTokInp) {
+                state.telegramBotToken = tgTokInp.value.trim();
+                try { localStorage.setItem('cp_tg_bot_token', state.telegramBotToken); } catch (e) {}
+            }
             if (kaspiInp) {
                 state.kaspiPayUrl = kaspiInp.value.trim() || 'https://pay.kaspi.kz/';
                 try { localStorage.setItem('cp_kaspi_pay_url', state.kaspiPayUrl); } catch (e) {}
@@ -4388,11 +4677,21 @@
                 state.mobizonApiKey = mbInp.value.trim();
                 try { localStorage.setItem('cp_mobizon_api_key', state.mobizonApiKey); } catch (e) {}
             }
+            if (typeof window.saveUserProfileToFirestore === 'function') {
+                window.saveUserProfileToFirestore('_GLOBAL_NOTIFY_CONFIG_', {
+                    name: '_GLOBAL_NOTIFY_CONFIG_',
+                    telegramBotToken: state.telegramBotToken || '',
+                    kaspiPayUrl: state.kaspiPayUrl || '',
+                    greenApiInstanceId: state.greenApiInstanceId || '',
+                    greenApiToken: state.greenApiToken || '',
+                    mobizonApiKey: state.mobizonApiKey || ''
+                });
+            }
             if (typeof window.initCoffeePeopleFirebase === 'function') {
                 window.initCoffeePeopleFirebase();
             }
             renderStaffDashboard();
-            showSystemToast('COFFEE PEOPLE CLOUD', 'Настройки сохранены', `Firebase Project ID: ${state.firebaseProjectId || 'Локальный режим'}`);
+            showSystemToast('COFFEE PEOPLE CLOUD', 'Настройки сохранены и синхронизированы', 'Токены уведомлений (Telegram Push / WhatsApp) сохранены в облаке.');
         }
 
         function copyFirestoreRules() {
@@ -4430,6 +4729,7 @@
                 const msg = `${ord.clientName}, бариста начал готовить ваш заказ ${ord.id} (${ord.arrivalInfo}).`;
                 showSystemToast(ord.clientPhone, `Заказ ${ord.id} готовится`, msg);
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `Заказ ${ord.id} на баре`, message: msg });
+                sendTelegramBotPushToGuest(ord, `⏳ *COFFEE PEOPLE*\n*${ord.clientName}*, бариста принял и начал готовить ваш предзаказ *${ord.id}* (${ord.arrivalInfo}).\nФилиал: ${ord.branch}`);
             } else if (nextStatus === 'ready') {
                 const msg = `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})! Назовите ваше имя бариста.`;
                 showSystemToast(ord.clientPhone, `ГОТОВО У СТОЙКИ • ${ord.id}`, msg);
@@ -4437,6 +4737,7 @@
                     showOrderReadyMegaModal(ord);
                 }
                 if (realtimeChannel) realtimeChannel.postMessage({ type: 'CLIENT_TOAST', phone: ord.clientPhone, title: `ГОТОВО У СТОЙКИ • ${ord.id}`, message: msg });
+                sendTelegramBotPushToGuest(ord, `☕ *ВАШ ЗАКАЗ ${ord.id} ГОТОВ!*\n\nИмя на стаканчике: *${ord.clientName}*\nФилиал: *${ord.branch}*\nПодача: ${ord.vessel || 'С собой'}\nСостав: ${formatShortItemsSummary(ord)}\n\nПодойдите к стойке выдачи без очереди и назовите ваше имя бариста!`);
                 sendAutoWhatsAppChannel2(ord.clientPhone, `☕ *COFFEE PEOPLE*\nЗдравствуйте, *${ord.clientName}*! Ваш заказ *${ord.id}* (${ord.branch}) ГОТОВ и ждёт вас у стойки выдачи.\nПодача: ${ord.vessel || 'С собой'}. Назовите ваше имя бариста!`);
             }
         }
@@ -4824,6 +5125,8 @@
 
         function placeFinalOrder() {
             if (!state.cart.length) return;
+            unlockMobileAudioAndNotifications();
+            requestSystemNotificationPermission();
             const { finalTotal, bonusDisc } = calculateTotals();
             const phone = getEffectiveOrderPhone();
             const cupName = document.getElementById('checkout-name-input').value.trim() || getEffectiveCupName();
@@ -4926,6 +5229,7 @@
                 vessel: state.serveVessel,
                 clientName: guestName,
                 clientPhone: effectiveContact,
+                clientTgId: (state.clientUser && state.clientUser.tgId) || ((window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null),
                 notifyChannel: state.notifyChannel || 'telegram',
                 items: summaryItems,
                 shortItems,
@@ -5013,6 +5317,27 @@
                 `Имя на стаканчике: ${guestName} (${arrivalInfo}). Начислено +${earnedCashback} ₸ кэшбэка.`
             );
             if (window.lucide) lucide.createIcons();
+        }
+
+        async function sendTelegramBotPushToGuest(orderObj, markdownText) {
+            const botToken = (state.telegramBotToken || '').trim();
+            const chatId = orderObj && (orderObj.clientTgId || (state.clientUser && state.clientUser.tgId));
+            if (!botToken || !chatId) return false;
+            try {
+                const url = `https://api.telegram.org/bot${encodeURIComponent(botToken)}/sendMessage`;
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: markdownText,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                return true;
+            } catch (e) {
+                return false;
+            }
         }
 
         async function sendAutoWhatsAppChannel2(phoneStr, textMessage) {
@@ -5286,6 +5611,23 @@
                                 if (!raw) return;
                                 const cloudUser = JSON.parse(raw);
                                 if (!cloudUser || !cloudUser.name) return;
+                                if (cloudUser.name === '_GLOBAL_NOTIFY_CONFIG_') {
+                                    if (typeof state !== 'undefined') {
+                                        if (cloudUser.telegramBotToken) {
+                                            state.telegramBotToken = cloudUser.telegramBotToken;
+                                            try { localStorage.setItem('cp_tg_bot_token', cloudUser.telegramBotToken); } catch (e) {}
+                                        }
+                                        if (cloudUser.greenApiInstanceId) {
+                                            state.greenApiInstanceId = cloudUser.greenApiInstanceId;
+                                            try { localStorage.setItem('cp_green_id_instance', cloudUser.greenApiInstanceId); } catch (e) {}
+                                        }
+                                        if (cloudUser.greenApiToken) {
+                                            state.greenApiToken = cloudUser.greenApiToken;
+                                            try { localStorage.setItem('cp_green_api_token', cloudUser.greenApiToken); } catch (e) {}
+                                        }
+                                    }
+                                    return;
+                                }
                                 if (cloudUser.phone) {
                                     const existingLocal = localDb[cloudUser.phone];
                                     const mergedOrders = (typeof mergeUniqueOrders === "function")
