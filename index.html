@@ -442,6 +442,18 @@
                     </div>
                 </div>
 
+                <!-- Dedicated Active Table Reservations Strip on Main Board -->
+                <div id="board-reservations-wrap" class="hidden mb-3 bg-indigo-950 text-white rounded-2xl p-3.5 border-2 border-indigo-400/60 shadow-md space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cp-ochre animate-ping"></span>
+                            <span class="font-display font-bold text-xs uppercase tracking-wider text-cp-ochre">📅 Забронированные столики</span>
+                        </div>
+                        <span id="board-reservations-count" class="font-mono text-[11px] font-extrabold bg-white/15 text-white px-2.5 py-0.5 rounded-lg">0</span>
+                    </div>
+                    <div id="board-reservations-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <!-- Column 1: Preparing on Bar -->
                     <div class="bg-cp-bg/70 rounded-2xl p-3.5 border border-cp-border/80">
@@ -1215,10 +1227,20 @@
                     </div>
 
                     <!-- Mode B: Advance Table & Time Reservation ("Бронь заранее") -->
-                    <div id="advance-reserve-options-box" class="hidden bg-cp-blueSoft/70 border border-cp-blue/25 rounded-2xl p-3.5 space-y-2.5">
+                    <div id="advance-reserve-options-box" class="hidden bg-indigo-50/90 border-2 border-indigo-500/40 rounded-2xl p-3.5 space-y-2.5 shadow-sm">
                         <div class="flex items-center justify-between">
-                            <span class="font-mono text-[10px] font-bold uppercase text-cp-blue">Бронь столика и предзаказ заранее</span>
-                            <span class="font-mono text-[10px] font-bold bg-white text-cp-blue px-2 py-0.5 rounded">Без депозита</span>
+                            <span class="font-mono text-[10px] font-extrabold uppercase text-indigo-900">📅 Бронь столика и предзаказ ко времени</span>
+                            <span class="font-mono text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">Мгновенно на табло</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-indigo-950 mb-1">На чьё имя бронь столика *</label>
+                                <input id="reserve-inline-name-input" type="text" oninput="syncCupName(this.value)" placeholder="Например: Алихан" class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 text-xs font-bold text-cp-ink focus:outline-none focus:border-indigo-600">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-indigo-950 mb-1">Телефон для подтверждения</label>
+                                <input id="reserve-inline-phone-input" type="tel" oninput="formatKzPhone(this); state.activeOrderPhone = this.value;" placeholder="+7 (777) 000-00-00" class="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 font-mono text-xs font-bold text-cp-ink focus:outline-none focus:border-indigo-600">
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -1254,7 +1276,11 @@
                                 </select>
                             </div>
                         </div>
-                        <button type="button" onclick="submitQuickTableReservationOnly()" class="w-full bg-cp-blue hover:bg-cp-blueDark text-white font-bold py-2.5 px-3 rounded-xl text-xs transition shadow-sm">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-cp-muted mb-1">Пожелание к столику (необязательно)</label>
+                            <input id="reserve-inline-note-input" type="text" placeholder="Например: тихий столик, 2 капучино к приходу..." class="w-full bg-white border border-cp-border rounded-xl px-3 py-2 text-xs font-medium focus:outline-none">
+                        </div>
+                        <button type="button" onclick="submitQuickTableReservationOnly()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 px-3 rounded-xl text-xs uppercase tracking-wider transition shadow-md">
                             Забронировать столик в 1 клик (можно без меню)
                         </button>
                     </div>
@@ -1281,7 +1307,7 @@
                     <input id="modal-cup-name-input" type="text" oninput="syncCupName(this.value)" placeholder="Например: Алихан" class="w-full bg-cp-pill rounded-xl px-4 py-3 text-sm font-bold focus:outline-none">
                 </div>
 
-                <button onclick="closeOrderConfigModal()" class="w-full bg-cp-ink text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider">
+                <button id="order-config-primary-btn" onclick="handleOrderConfigPrimaryAction()" class="w-full bg-cp-ink hover:bg-stone-800 text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition">
                     Сохранить параметры заказа
                 </button>
             </div>
@@ -2633,6 +2659,8 @@
             // Barista Terminal State & Live Pickup Board Orders (Starts Clean & Empty)
             staffUser: null,
             activeStaffTab: 'orders',
+            staffQueueFilter: 'active',
+            autoClearReadyMins: parseFloat(localStorage.getItem('cp_auto_clear_ready_mins_v1')) || 10,
             staffOrders: [],
             sessionOrderIds: [],
             activeViewedOrderId: null,
@@ -3830,16 +3858,78 @@
             return vesselStr.includes('керамике') || vesselStr.includes('В зале') ? 'В керамике' : 'С собой';
         }
 
+        function isReservationOrder(o) {
+            if (!o) return false;
+            if (o.isReservation || o.orderType === 'reservation') return true;
+            if (String(o.id || '').startsWith('#Б-') || String(o.id || '').startsWith('Б-')) return true;
+            if (String(o.vessel || '').includes('Бронь')) return true;
+            if (Array.isArray(o.items) && o.items.some(it => String(it).includes('Бронь столика'))) return true;
+            return false;
+        }
+
+        const STORAGE_KEY_WEEKLY_SEQ = 'cp_weekly_order_seq_v2';
+        const WEEK_RESET_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+
+        function getWeeklySeqRecord() {
+            const now = Date.now();
+            let rec = { weekStartMs: now, lastSeq: 100 };
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_WEEKLY_SEQ);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed.weekStartMs === 'number' && typeof parsed.lastSeq === 'number') {
+                        rec = parsed;
+                    }
+                } else {
+                    const legacySeq = parseInt(localStorage.getItem(STORAGE_KEY_ORDER_SEQ) || '100', 10);
+                    if (!isNaN(legacySeq) && legacySeq > 100) rec.lastSeq = legacySeq;
+                }
+            } catch (e) {}
+
+            // Reset sequence back to 100 ONLY if a full 7-day week has passed!
+            if (now - rec.weekStartMs >= WEEK_RESET_INTERVAL_MS) {
+                rec = { weekStartMs: now, lastSeq: 100 };
+                try {
+                    localStorage.setItem(STORAGE_KEY_WEEKLY_SEQ, JSON.stringify(rec));
+                    localStorage.setItem(STORAGE_KEY_ORDER_SEQ, '100');
+                } catch (e) {}
+            }
+            return rec;
+        }
+
+        function getWeeklySeqDaysLeft() {
+            const rec = getWeeklySeqRecord();
+            const msLeft = Math.max(0, WEEK_RESET_INTERVAL_MS - (Date.now() - rec.weekStartMs));
+            return Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+        }
+
+        function generateNextOrderSeqNumber() {
+            const rec = getWeeklySeqRecord();
+            let maxSeq = rec.lastSeq;
+            (state.staffOrders || []).forEach(o => {
+                const num = parseInt(String(o.id || '').replace(/\D/g, ''), 10);
+                if (!isNaN(num) && num > maxSeq && num < 900000) maxSeq = num;
+            });
+            const next = maxSeq + 1;
+            rec.lastSeq = next;
+            try {
+                localStorage.setItem(STORAGE_KEY_WEEKLY_SEQ, JSON.stringify(rec));
+                localStorage.setItem(STORAGE_KEY_ORDER_SEQ, String(next));
+            } catch (e) {}
+            return next;
+        }
+
         let __cpInitialOrdersLoaded = false;
         window.renderBoard = function(cloudOrders) {
             if (Array.isArray(cloudOrders)) {
                 const prevAllIds = new Set(state.staffOrders.map(o => o.id));
-                state.staffOrders = cloudOrders.map(d => {
+                const mappedCloud = cloudOrders.map(d => {
                     const normalizedStatus = (d.status === 'preparing') ? 'cooking' : (d.status || 'cooking');
-                    return {
+                    const displayId = d.orderNumber || d.displayId || (String(d.id).startsWith('#') ? d.id : '#' + String(d.id).slice(0, 4).toUpperCase());
+                    const obj = {
                         ...d,
                         firestoreId: d.firestoreId || d.id,
-                        id: d.orderNumber || d.displayId || (String(d.id).startsWith('#') ? d.id : '#' + String(d.id).slice(0, 4).toUpperCase()),
+                        id: displayId,
                         status: normalizedStatus,
                         items: Array.isArray(d.items) ? d.items : [],
                         shortItems: Array.isArray(d.shortItems) ? d.shortItems : [],
@@ -3850,38 +3940,60 @@
                         arrivalInfo: d.arrivalInfo || 'Сразу ~7 мин',
                         vessel: d.vessel || 'С собой (В стаканчике)'
                     };
+                    obj.isReservation = isReservationOrder(obj);
+                    return obj;
                 });
+
+                // Preserve any locally created orders/reservations that haven't appeared in cloudOrders snapshot yet!
+                const cloudIdSet = new Set(mappedCloud.map(c => c.id));
+                const localUnsynced = (state.staffOrders || []).filter(loc => loc && loc.id && !cloudIdSet.has(loc.id));
+                state.staffOrders = [...localUnsynced, ...mappedCloud];
+
                 state.staffOrders.forEach(ord => {
                     const prevNotified = __cpNotifiedStatusMap.get(ord.id);
                     if (!__cpInitialOrdersLoaded) {
                         __cpNotifiedStatusMap.set(ord.id, ord.status);
                         return;
                     }
-                    // 1) Alert Guest when their order becomes READY
+                    // 0) Alert Guest when Worker sends a Reservation Reminder or Confirmation
+                    const remKey = `REM_${ord.id}_${ord.lastWorkerReminderAt || ''}`;
+                    if (ord.lastWorkerReminderAt && !__cpNotifiedStatusMap.has(remKey) && isOwnOrder(ord)) {
+                        __cpNotifiedStatusMap.set(remKey, true);
+                        if (__cpInitialOrdersLoaded) {
+                            showSystemToast(
+                                ord.clientPhone,
+                                `📅 НАПОМИНАНИЕ О БРОНИ • ${ord.id}`,
+                                ord.lastWorkerReminderText || `${ord.clientName}, напоминаем о вашей брони столика (${ord.arrivalInfo}, ${ord.vessel}) в COFFEE PEOPLE!`
+                            );
+                        }
+                    }
+                    // 1) Alert Guest when their order/reservation becomes READY
                     if (ord.status === 'ready' && prevNotified !== 'ready' && isOwnOrder(ord)) {
                         __cpNotifiedStatusMap.set(ord.id, 'ready');
                         showSystemToast(
                             ord.clientPhone,
-                            `ГОТОВО У СТОЙКИ • ${ord.id}`,
-                            `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})!`
+                            isReservationOrder(ord) ? `БРОНЬ И СТОЛИК ГОТОВЫ • ${ord.id}` : `ГОТОВО У СТОЙКИ • ${ord.id}`,
+                            isReservationOrder(ord)
+                                ? `${ord.clientName}, ваш столик (${ord.vessel}) подготовлен и ждёт вас в COFFEE PEOPLE (${ord.branch})!`
+                                : `${ord.clientName}, ваш заказ ${ord.id} ГОТОВ и ждёт вас у стойки выдачи (${ord.branch})!`
                         );
                         showOrderReadyMegaModal(ord);
                     } else if (ord.status === 'cooking' && prevNotified && prevNotified !== 'cooking' && isOwnOrder(ord)) {
                         __cpNotifiedStatusMap.set(ord.id, 'cooking');
                         showSystemToast(
                             ord.clientPhone,
-                            `БАРИСТА ГОТОВИТ ЗАКАЗ • ${ord.id}`,
-                            `${ord.clientName}, бариста начал готовить ваш заказ ${ord.id} (${ord.arrivalInfo}).`
+                            `БАРИСТА ПРИНЯЛ В РАБОТУ • ${ord.id}`,
+                            `${ord.clientName}, ваш заказ ${ord.id} (${ord.arrivalInfo}) принят бариста.`
                         );
                     } else {
                         __cpNotifiedStatusMap.set(ord.id, ord.status);
                     }
 
-                    // 2) Alert Barista when a brand-new order arrives
+                    // 2) Alert Barista when a brand-new order or reservation arrives
                     if (!prevAllIds.has(ord.id) && state.staffUser) {
                         showSystemToast(
                             `${ord.id} • ${ord.clientName}`,
-                            `НОВЫЙ ПРЕДЗАКАЗ НА БАРЕ • ${ord.id}`,
+                            isReservationOrder(ord) ? `📅 НОВАЯ БРОНЬ СТОЛИКА • ${ord.id}` : `НОВЫЙ ПРЕДЗАКАЗ НА БАРЕ • ${ord.id}`,
                             `Гость: ${ord.clientName} (${ord.arrivalInfo}) • ${formatShortItemsSummary(ord)}`
                         );
                     }
@@ -3907,11 +4019,47 @@
             const cookingCount = document.getElementById('board-cooking-count');
             const readyCount = document.getElementById('board-ready-count');
             const branchInd = document.getElementById('board-branch-indicator');
+            const resWrap = document.getElementById('board-reservations-wrap');
+            const resList = document.getElementById('board-reservations-list');
+            const resCount = document.getElementById('board-reservations-count');
 
             if (branchInd) branchInd.textContent = state.branch;
 
-            const cookingOrders = state.staffOrders.filter(o => o.status === 'new' || o.status === 'cooking');
-            const readyOrders = state.staffOrders.filter(o => o.status === 'ready');
+            const activeReservations = (state.staffOrders || []).filter(o => isReservationOrder(o) && o.status !== 'done' && o.status !== 'rejected');
+            const cookingOrders = (state.staffOrders || []).filter(o => (o.status === 'new' || o.status === 'cooking') && !isReservationOrder(o));
+            const readyOrders = (state.staffOrders || []).filter(o => o.status === 'ready');
+
+            // Render dedicated Active Reservations Strip on Main Board so reservations are 100% visible!
+            if (resWrap && resList && resCount) {
+                resCount.textContent = activeReservations.length;
+                if (activeReservations.length > 0) {
+                    resWrap.classList.remove('hidden');
+                    resList.innerHTML = activeReservations.map(o => {
+                        const mine = isOwnOrder(o);
+                        const isConfirmedReady = o.status === 'ready' || o.paymentStatus === 'verified';
+                        return `
+                            <div onclick="openOrderFromBoard('${escapeHtml(o.id)}')" class="bg-white/10 hover:bg-white/15 border ${mine ? 'border-cp-ochre' : 'border-white/20'} rounded-xl p-3 cursor-pointer transition flex flex-col justify-between gap-1.5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="bg-indigo-500 text-white font-mono text-[10px] font-extrabold px-2 py-0.5 rounded">${escapeHtml(o.id)}</span>
+                                        <span class="font-display font-bold text-xs text-white uppercase truncate">${escapeHtml(o.clientName)}</span>
+                                        ${mine ? '<span class="bg-cp-ochre text-cp-ink font-mono text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase">ВАША БРОНЬ</span>' : ''}
+                                    </div>
+                                    <span class="font-mono text-[10px] font-bold text-cp-ochre shrink-0">⏰ ${escapeHtml(o.arrivalInfo)}</span>
+                                </div>
+                                <div class="text-[11px] text-stone-200 font-semibold truncate">${escapeHtml(o.vessel)} • ${escapeHtml(formatShortItemsSummary(o))}</div>
+                                <div class="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-white/10">
+                                    <span class="${isConfirmedReady ? 'text-emerald-300' : 'text-amber-300'} font-bold">${isConfirmedReady ? '✓ Столик закреплён' : '⏳ Бронь передана бариста'}</span>
+                                    <span class="text-stone-300 underline">Открыть талон →</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    resWrap.classList.add('hidden');
+                    resList.innerHTML = '';
+                }
+            }
 
             if (cookingCount) cookingCount.textContent = cookingOrders.length;
             if (readyCount) readyCount.textContent = readyOrders.length;
@@ -3928,22 +4076,23 @@
                     cookingList.innerHTML = cookingOrders.map(o => {
                         const mine = isOwnOrder(o);
                         const maskedPhone = maskPhoneForBoard(o.clientPhone);
-                        const vesselBadge = formatVesselShortBadge(o.vessel);
+                        const isCeramic = String(o.vessel || '').includes('керамике') || String(o.vessel || '').includes('В зале');
+                        const vesselBadge = isCeramic ? '☕ В зале (керамика)' : '🥤 С собой';
                         const itemsLine = formatShortItemsSummary(o);
                         return `
-                            <div onclick="openOrderFromBoard('${o.id}')" class="bg-cp-surface hover:bg-white rounded-2xl p-3.5 border ${mine ? 'border-cp-ink ring-1 ring-cp-ink/15' : 'border-cp-border'} transition cursor-pointer space-y-2 shadow-sm">
+                            <div onclick="openOrderFromBoard('${escapeHtml(o.id)}')" class="bg-cp-surface hover:bg-white rounded-2xl p-3.5 border-2 ${mine ? 'border-cp-ink' : 'border-cp-border'} border-l-8 ${isCeramic ? 'border-l-emerald-600' : 'border-l-cp-blue'} transition cursor-pointer space-y-2 shadow-sm">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-2 min-w-0">
-                                        <span class="font-mono font-bold text-xs text-cp-ink">${o.id}</span>
-                                        <span class="font-display font-bold text-xs sm:text-sm text-cp-ink uppercase truncate">${o.clientName}</span>
+                                        <span class="bg-cp-ink text-white font-mono font-extrabold text-xs px-2 py-0.5 rounded-lg">${escapeHtml(o.id)}</span>
+                                        <span class="font-display font-bold text-xs sm:text-sm text-cp-ink uppercase truncate">${escapeHtml(o.clientName)}</span>
                                         ${mine ? `<span class="bg-cp-ochre text-cp-ink font-mono text-[9px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">ВАШ ЗАКАЗ</span>` : ''}
                                     </div>
-                                    <span class="font-mono text-[10px] font-bold text-cp-blue bg-cp-blueSoft px-2.5 py-0.5 rounded-full shrink-0">${o.arrivalInfo || 'Сразу ~7 мин'}</span>
+                                    <span class="font-mono text-[10px] font-bold text-cp-blue bg-cp-blueSoft px-2.5 py-0.5 rounded-full shrink-0">⏰ ${escapeHtml(o.arrivalInfo || 'Сразу ~7 мин')}</span>
                                 </div>
-                                <div class="text-[11px] font-semibold text-cp-ink truncate">${itemsLine}</div>
-                                <div class="flex items-center justify-between text-[10px] font-mono text-cp-muted pt-0.5 border-t border-cp-border/60">
-                                    <span>${maskedPhone}</span>
-                                    <span class="px-2 py-0.5 rounded bg-cp-pill text-cp-ink font-semibold">${vesselBadge}</span>
+                                <div class="text-xs font-bold text-cp-ink truncate">${escapeHtml(itemsLine)}</div>
+                                <div class="flex items-center justify-between text-[10px] font-mono text-cp-muted pt-1 border-t border-cp-border/60">
+                                    <span>${escapeHtml(maskedPhone)}</span>
+                                    <span class="px-2 py-0.5 rounded-md ${isCeramic ? 'bg-emerald-100 text-emerald-900' : 'bg-cp-blueSoft text-cp-blue'} font-bold">${vesselBadge}</span>
                                 </div>
                             </div>
                         `;
@@ -3962,26 +4111,23 @@
                     readyList.innerHTML = readyOrders.map(o => {
                         const mine = isOwnOrder(o);
                         const maskedPhone = maskPhoneForBoard(o.clientPhone);
-                        const vesselBadge = formatVesselShortBadge(o.vessel);
+                        const isRes = isReservationOrder(o);
+                        const vesselBadge = isRes ? `📅 ${o.vessel}` : formatVesselShortBadge(o.vessel);
                         const itemsLine = formatShortItemsSummary(o);
                         return `
-                            <div onclick="openOrderFromBoard('${o.id}')" class="bg-cp-blue hover:bg-cp-blueDark text-white rounded-2xl p-3.5 transition cursor-pointer space-y-2 shadow-md">
+                            <div onclick="openOrderFromBoard('${escapeHtml(o.id)}')" class="${isRes ? 'bg-indigo-700 hover:bg-indigo-800' : 'bg-cp-blue hover:bg-cp-blueDark'} text-white rounded-2xl p-3.5 border-l-8 border-l-cp-ochre transition cursor-pointer space-y-2 shadow-md">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-2 min-w-0">
-                                        <span class="font-mono font-bold text-xs text-cp-ochre">${o.id}</span>
-                                        <span class="font-display font-bold text-xs sm:text-sm uppercase truncate">${o.clientName}</span>
-                                        ${mine ? `<span class="bg-cp-ochre text-cp-ink font-mono text-[9px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">ВАШ ЗАКАЗ</span>` : ''}
+                                        <span class="bg-cp-ochre text-cp-ink font-mono font-extrabold text-xs px-2 py-0.5 rounded-lg">${escapeHtml(o.id)}</span>
+                                        <span class="font-display font-bold text-xs sm:text-sm uppercase truncate">${escapeHtml(o.clientName)}</span>
+                                        ${mine ? `<span class="bg-white text-cp-ink font-mono text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase shrink-0">ВАШ ЗАКАЗ</span>` : ''}
                                     </div>
-                                    <span class="font-mono text-[10px] font-bold bg-white/15 px-2.5 py-0.5 rounded-full uppercase shrink-0">ЖДЁТ У СТОЙКИ</span>
+                                    <span class="font-mono text-[10px] font-extrabold bg-emerald-400 text-cp-ink px-2.5 py-0.5 rounded-full uppercase shrink-0">${isRes ? 'СТОЛИК ГОТОВ' : `ЖДЁТ У СТОЙКИ • ${getOrderAutoClearRemainingLabel(o)}`}</span>
                                 </div>
-                                <div class="text-[11px] text-blue-100 font-medium truncate">${itemsLine}</div>
-                                <div class="flex items-center justify-between text-[10px] font-mono text-blue-200 pt-1 border-t border-white/15">
-                                    <span>${maskedPhone} • ${vesselBadge}</span>
-                                    ${mine ? `
-                                        <button type="button" onclick="event.stopPropagation(); markOrderPickedUpByGuest('${o.id}');" class="bg-white text-cp-blue font-sans font-bold text-[10px] px-2.5 py-1 rounded-lg hover:bg-cp-ochre hover:text-cp-ink transition">
-                                            Я забрал заказ
-                                        </button>
-                                    ` : `<span>Назовите имя бариста</span>`}
+                                <div class="text-xs font-semibold text-white/95 truncate">${escapeHtml(itemsLine)}</div>
+                                <div class="flex items-center justify-between text-[10px] font-mono text-white/80 pt-1 border-t border-white/15">
+                                    <span>${escapeHtml(maskedPhone)}</span>
+                                    <span class="px-2 py-0.5 rounded bg-white/15 text-white font-bold">${escapeHtml(vesselBadge)}</span>
                                 </div>
                             </div>
                         `;
@@ -4038,7 +4184,7 @@
             try {
                 localStorage.removeItem(STORAGE_KEY_REAL_ORDERS);
                 localStorage.removeItem(STORAGE_KEY_SESSION_ORDERS);
-                localStorage.removeItem(STORAGE_KEY_ORDER_SEQ);
+                // Keep STORAGE_KEY_WEEKLY_SEQ and STORAGE_KEY_ORDER_SEQ intact so order numbers never repeat within the 7-day week!
             } catch (e) {}
             broadcastRealtimeSync();
             updateStaffCounters();
@@ -4153,6 +4299,29 @@
         function loadOwnerPitchDemoData() {
             const nowTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             const demoOrders = [
+                {
+                    id: '#Б-109',
+                    firestoreId: 'DEMO_RES_109',
+                    orderType: 'reservation',
+                    isReservation: true,
+                    time: nowTime,
+                    branch: state.branch,
+                    arrivalInfo: 'Сегодня к 19:00',
+                    vessel: 'Бронь (2 гостя, У окна)',
+                    clientName: 'Аружан',
+                    clientPhone: '+7 (777) 390-11-22',
+                    notifyChannel: 'whatsapp',
+                    paymentBank: 'Без депозита (Бронь)',
+                    paymentStatus: 'verified',
+                    receiptCode: 'Столик у панорамного окна',
+                    items: ['Бронь столика: Сегодня к 19:00 • 2 гостя • У окна (Пожелание: свеча к десерту)'],
+                    shortItems: ['Бронь: 2 гостя, У окна'],
+                    subtotal: 0,
+                    total: 0,
+                    earnedCashback: 0,
+                    spentBonuses: 0,
+                    status: 'cooking'
+                },
                 {
                     id: '#108',
                     time: nowTime,
@@ -5369,6 +5538,15 @@
         function openStaffModal() {
             clearStaffAuthError();
             document.getElementById('staff-modal').classList.remove('hidden');
+            const upcomingRes = (state.staffOrders || []).filter(o => isReservationOrder(o) && o.status !== 'done' && o.status !== 'rejected');
+            if (upcomingRes.length > 0) {
+                const firstR = upcomingRes[0];
+                showSystemToast(
+                    `В системе броней: ${upcomingRes.length} шт.`,
+                    `📅 АКТИВНЫЕ БРОНИ (СЕГОДНЯ / ЗАВТРА / ПОСЛЕЗАВТРА)`,
+                    `Ближайшая бронь: ${firstR.id} — ${firstR.clientName} (${firstR.arrivalInfo}, ${firstR.vessel}). Нажмите «🔔 Напомнить гостю» для связи!`
+                );
+            }
             if (state.staffUser) {
                 document.getElementById('staff-auth-gate').classList.add('hidden');
                 document.getElementById('staff-dashboard-view').classList.remove('hidden');
@@ -6539,140 +6717,331 @@
                 return;
             }
 
+            const allOrders = state.staffOrders || [];
+            const activeOrdersList = allOrders.filter(o => o.status !== 'done' && o.status !== 'rejected');
+            const resOrdersList = allOrders.filter(o => isReservationOrder(o) && o.status !== 'done' && o.status !== 'rejected');
+            const cookingOnlyList = allOrders.filter(o => (o.status === 'new' || o.status === 'cooking') && !isReservationOrder(o));
+            const readyOnlyList = allOrders.filter(o => o.status === 'ready');
+            const archiveOrdersList = allOrders.filter(o => o.status === 'done' || o.status === 'rejected');
+
+            const currentFilter = state.staffQueueFilter || 'active';
+            let filteredPairs = allOrders.map((o, idx) => ({ o, idx }));
+            if (currentFilter === 'active') {
+                filteredPairs = filteredPairs.filter(p => p.o.status !== 'done' && p.o.status !== 'rejected');
+            } else if (currentFilter === 'reservations') {
+                filteredPairs = filteredPairs.filter(p => isReservationOrder(p.o) && p.o.status !== 'done' && p.o.status !== 'rejected');
+            } else if (currentFilter === 'cooking') {
+                filteredPairs = filteredPairs.filter(p => (p.o.status === 'new' || p.o.status === 'cooking') && !isReservationOrder(p.o));
+            } else if (currentFilter === 'ready') {
+                filteredPairs = filteredPairs.filter(p => p.o.status === 'ready');
+            } else if (currentFilter === 'done') {
+                filteredPairs = filteredPairs.filter(p => p.o.status === 'done' || p.o.status === 'rejected');
+            }
+
             const barLoadHeaderHtml = `
-                <div class="bg-white rounded-2xl p-3.5 border border-cp-border flex flex-wrap items-center justify-between gap-2 shadow-sm mb-3">
-                    <div>
-                        <div class="text-xs font-bold text-cp-ink">Текущая нагрузка бара и кухни (влияет на расчет времени готовки)</div>
-                        <div class="text-[11px] text-cp-muted">Выберите режим, чтобы гости видели реальный размах времени приготовления</div>
+                <div class="space-y-3 mb-4">
+                    <!-- Bar Load Speed + Auto-Clear Board Timer + Weekly Sequence Info -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                        <div class="bg-white rounded-2xl p-3.5 border border-cp-border flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                            <div>
+                                <div class="text-xs font-bold text-cp-ink">Скорость отдачи бара</div>
+                                <div class="text-[10px] font-mono text-cp-muted">🔢 Недельный цикл номеров: <b>#${getWeeklySeqRecord().lastSeq}</b> (сброс через ${getWeeklySeqDaysLeft()} дн.)</div>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" onclick="setBarLoadMode(0)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold ${state.barLoadExtraMins === 0 ? 'bg-emerald-700 text-white shadow-sm' : 'bg-cp-pill text-cp-ink'}">5–10м</button>
+                                <button type="button" onclick="setBarLoadMode(5)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold ${state.barLoadExtraMins === 5 ? 'bg-amber-600 text-white shadow-sm' : 'bg-cp-pill text-cp-ink'}">10–15м</button>
+                                <button type="button" onclick="setBarLoadMode(10)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold ${state.barLoadExtraMins === 10 ? 'bg-red-600 text-white shadow-sm' : 'bg-cp-pill text-cp-ink'}">15–25м</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-3.5 border border-cp-border flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                            <div>
+                                <div class="text-xs font-bold text-cp-ink">Авто-исчезновение готовых с табло</div>
+                                <div class="text-[10px] text-cp-muted">Заказ сам уходит с табло в архив через выбранное время</div>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                ${[
+                                    { m: 0.5, lbl: '30 сек (Тест)' },
+                                    { m: 5, lbl: '5 мин' },
+                                    { m: 10, lbl: '10 мин' },
+                                    { m: 15, lbl: '15 мин' }
+                                ].map(opt => `
+                                    <button type="button" onclick="setAutoClearReadyMins(${opt.m})" class="px-2.5 py-1.5 rounded-xl font-mono text-[10px] font-extrabold transition ${Number(state.autoClearReadyMins) === opt.m ? 'bg-cp-ink text-cp-ochre shadow-sm' : 'bg-cp-pill text-cp-ink hover:bg-cp-pillHover'}">
+                                        ${opt.lbl}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex gap-1.5">
-                        <button type="button" onclick="setBarLoadMode(0)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 0 ? 'bg-emerald-700 text-white' : 'bg-cp-pill text-cp-ink'}">5–10 мин (Спокойно)</button>
-                        <button type="button" onclick="setBarLoadMode(5)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 5 ? 'bg-amber-600 text-white' : 'bg-cp-pill text-cp-ink'}">10–15 мин (Средне)</button>
-                        <button type="button" onclick="setBarLoadMode(10)" class="px-3 py-1.5 rounded-xl text-xs font-bold ${state.barLoadExtraMins === 10 ? 'bg-red-600 text-white' : 'bg-cp-pill text-cp-ink'}">15–25 мин (Час пик)</button>
+
+                    <!-- Multi-Day Reservations Radar for Staff (Today / Tomorrow / Day After Tomorrow) -->
+                    ${resOrdersList.length > 0 ? `
+                    <div class="bg-indigo-950 text-white rounded-2xl p-3.5 border-2 border-indigo-400/70 space-y-2 shadow-md">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-cp-ochre animate-ping"></span>
+                                <span class="font-display font-bold text-xs uppercase tracking-wider text-cp-ochre">📅 Журнал броней в системе (Сегодня / Завтра / Послезавтра): ${resOrdersList.length} шт.</span>
+                            </div>
+                            <span class="font-mono text-[10px] bg-white/15 px-2.5 py-0.5 rounded-lg text-indigo-200">Уведомления персоналу и гостям активны</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${resOrdersList.map(ro => {
+                                const rIdx = allOrders.findIndex(x => x.id === ro.id);
+                                const isFutureDay = String(ro.arrivalInfo || '').includes('Завтра') || String(ro.arrivalInfo || '').includes('Послезавтра');
+                                return `
+                                    <div class="bg-white/10 rounded-xl p-2.5 border border-white/15 flex items-center justify-between gap-2 text-xs">
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="font-mono font-extrabold text-[10px] px-1.5 py-0.5 rounded ${isFutureDay ? 'bg-amber-400 text-cp-ink' : 'bg-indigo-500 text-white'}">${escapeHtml(ro.id)}</span>
+                                                <span class="font-bold text-white truncate">${escapeHtml(ro.clientName)}</span>
+                                                <span class="font-mono text-[10px] text-cp-ochre">• ${escapeHtml(ro.arrivalInfo)}</span>
+                                            </div>
+                                            <div class="text-[10px] text-stone-300 truncate mt-0.5">${escapeHtml(ro.vessel)} • ${escapeHtml(ro.clientPhone)}</div>
+                                        </div>
+                                        <button type="button" onclick="sendWorkerReservationReminderToGuest(${rIdx})" class="bg-cp-ochre hover:bg-[#dcad3d] text-cp-ink font-mono text-[10px] font-extrabold px-2.5 py-1.5 rounded-lg shrink-0 transition" title="Отправить напоминание гостю в Push, Telegram и WhatsApp">
+                                            🔔 Напомнить гостю
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Visual Category Filter Pills (Separates Active, Reservations, Ready, and Completed Archive!) -->
+                    <div class="flex flex-wrap items-center gap-1.5 bg-white p-2 rounded-2xl border border-cp-border shadow-sm">
+                        <button type="button" onclick="setStaffQueueFilter('active')" class="px-3 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${currentFilter === 'active' ? 'bg-cp-ink text-white shadow' : 'bg-cp-pill/70 text-cp-ink hover:bg-cp-pill'}">
+                            <span>🔥 Активные</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded-md ${currentFilter === 'active' ? 'bg-cp-ochre text-cp-ink' : 'bg-white text-cp-ink'}">${activeOrdersList.length}</span>
+                        </button>
+                        <button type="button" onclick="setStaffQueueFilter('reservations')" class="px-3 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${currentFilter === 'reservations' ? 'bg-indigo-600 text-white shadow' : 'bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100'}">
+                            <span>📅 Брони столиков</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded-md ${currentFilter === 'reservations' ? 'bg-white text-indigo-900' : 'bg-indigo-200 text-indigo-950'}">${resOrdersList.length}</span>
+                        </button>
+                        <button type="button" onclick="setStaffQueueFilter('cooking')" class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${currentFilter === 'cooking' ? 'bg-amber-600 text-white shadow' : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'}">
+                            <span>⏳ Готовятся</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded-md bg-white/80 text-amber-950">${cookingOnlyList.length}</span>
+                        </button>
+                        <button type="button" onclick="setStaffQueueFilter('ready')" class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${currentFilter === 'ready' ? 'bg-cp-blue text-white shadow' : 'bg-cp-blueSoft text-cp-blue border border-cp-blue/20 hover:bg-blue-100'}">
+                            <span>🔔 Готовы у стойки</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded-md bg-white text-cp-blue">${readyOnlyList.length}</span>
+                        </button>
+                        <button type="button" onclick="setStaffQueueFilter('done')" class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto ${currentFilter === 'done' ? 'bg-stone-700 text-white shadow' : 'bg-stone-100 text-stone-600 border border-stone-300 hover:bg-stone-200'}">
+                            <span>✓ Выданные (Архив)</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded-md bg-white text-stone-800">${archiveOrdersList.length}</span>
+                        </button>
                     </div>
                 </div>
             `;
 
-            if (!state.staffOrders.length) {
+            if (!filteredPairs.length) {
                 body.innerHTML = barLoadHeaderHtml + `
-                    <div class="bg-white rounded-2xl p-8 border border-cp-border text-center space-y-2">
-                        <div class="font-display font-bold text-sm uppercase text-cp-ink">Очередь заказов пуста</div>
+                    <div class="bg-white rounded-2xl p-8 border border-cp-border text-center space-y-2.5">
+                        <div class="font-display font-bold text-sm uppercase text-cp-ink">
+                            ${currentFilter === 'reservations' ? 'Активных броней столиков пока нет' : currentFilter === 'done' ? 'Архив выданных заказов пуст' : 'В этой категории сейчас нет заказов'}
+                        </div>
                         <p class="text-xs text-cp-muted max-w-md mx-auto leading-relaxed">
-                            Как только гость оформит заказ через меню, карточка с его именем, телефоном и составом заказа мгновенно появится здесь и на онлайн-табло.
+                            ${archiveOrdersList.length > 0 && currentFilter !== 'done' ? `Завершённые заказы (${archiveOrdersList.length} шт.) автоматически перенесены во вкладку «✓ Выданные (Архив)», чтобы не мешать работе бариста.` : 'Новые предзаказы и брони столиков мгновенно появятся здесь со звуковым сигналом.'}
                         </p>
                     </div>
                 `;
                 return;
             }
 
-            if (false) {
-                body.innerHTML = `
-                    <div class="bg-white rounded-2xl p-8 border border-cp-border text-center space-y-2">
-                        <div class="font-display font-bold text-sm uppercase text-cp-ink">Очередь заказов пуста</div>
-                        <p class="text-xs text-cp-muted max-w-md mx-auto leading-relaxed">
-                            Как только гость оформит заказ через меню, карточка с его именем, телефоном и составом заказа мгновенно появится здесь и на онлайн-табло.
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            body.innerHTML = barLoadHeaderHtml + state.staffOrders.map((o, idx) => {
-                const statusBadge = o.status === 'new'
-                    ? '<span class="bg-red-100 text-red-800 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Новый предзаказ</span>'
-                    : o.status === 'cooking'
-                    ? '<span class="bg-amber-100 text-amber-900 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Готовится на баре</span>'
-                    : o.status === 'ready'
-                    ? '<span class="bg-cp-blue text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Ждёт у стойки</span>'
-                    : '<span class="bg-stone-200 text-stone-600 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Выдан гостю</span>';
+            body.innerHTML = barLoadHeaderHtml + '<div class="space-y-4">' + filteredPairs.map(({ o, idx }) => {
+                const isRes = isReservationOrder(o);
+                const isCeramic = !isRes && (String(o.vessel || '').includes('керамике') || String(o.vessel || '').includes('В зале'));
+                const isDoneOrRejected = o.status === 'done' || o.status === 'rejected';
 
                 const cleanDigits = (o.clientPhone || '').replace(/\D/g, '');
-                const waReadyMsg = `Здравствуйте, ${o.clientName}! Ваш заказ ${o.id} в COFFEE PEOPLE (${o.branch}) ГОТОВ и ждёт вас у стойки выдачи. Назовите ваше имя (${o.clientName}) бариста.`;
-                const waClarifyMsg = `Здравствуйте, ${o.clientName}! Пишем из кофейни COFFEE PEOPLE (${o.branch}) по вашему предзаказу ${o.id}: `;
+                const waReadyMsg = isRes
+                    ? `Здравствуйте, ${o.clientName}! Ваша бронь столика ${o.id} (${o.arrivalInfo}, ${o.vessel}) в COFFEE PEOPLE (${o.branch}) ПОДТВЕРЖДЕНА! Ждём вас!`
+                    : `Здравствуйте, ${o.clientName}! Ваш заказ ${o.id} в COFFEE PEOPLE (${o.branch}) ГОТОВ и ждёт вас у стойки выдачи. Назовите ваше имя (${o.clientName}) бариста.`;
+                const waClarifyMsg = `Здравствуйте, ${o.clientName}! Пишем из кофейни COFFEE PEOPLE (${o.branch}) по вашему заказу ${o.id}: `;
 
                 const waReadyLink = `https://wa.me/${cleanDigits}?text=${encodeURIComponent(waReadyMsg)}`;
                 const waClarifyLink = `https://wa.me/${cleanDigits}?text=${encodeURIComponent(waClarifyMsg)}`;
 
-                return `
-                    <div class="bg-white rounded-2xl p-4 border border-cp-border shadow-sm space-y-3">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                                <span class="font-mono font-bold text-sm text-cp-blue">${o.id}</span>
-                                <span class="font-display font-bold text-sm uppercase text-cp-ink">ИМЯ НА СТАКАНЧИКЕ: ${o.clientName}</span>
+                // COMPACT ARCHIVE CARD FOR COMPLETED ('done') OR REJECTED ORDERS (No confusing active buttons!)
+                if (isDoneOrRejected) {
+                    return `
+                        <div class="bg-stone-100 rounded-2xl p-4 border border-stone-300 border-l-8 ${o.status === 'rejected' ? 'border-l-red-600' : 'border-l-stone-500'} flex flex-wrap items-center justify-between gap-3">
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="bg-stone-700 text-white font-mono font-extrabold text-xs px-2.5 py-1 rounded-lg">${escapeHtml(o.id)}</span>
+                                    <span class="font-display font-bold text-sm uppercase text-stone-900">${escapeHtml(o.clientName)}</span>
+                                    <span class="font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${o.status === 'rejected' ? 'bg-red-200 text-red-900' : 'bg-emerald-100 text-emerald-900'}">
+                                        ${o.status === 'rejected' ? '✕ Отклонён (Не оплачен)' : '✓ Выдан гостю'}
+                                    </span>
+                                    <span class="font-mono text-xs text-stone-600">${escapeHtml(o.vessel || 'С собой')} • ${Number(o.total || 0).toLocaleString('ru-RU')} ₸</span>
+                                </div>
+                                <div class="text-xs font-semibold text-stone-700">${escapeHtml(formatShortItemsSummary(o))}</div>
                             </div>
-                            ${statusBadge}
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="printOrderThermalSlip(${idx})" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-stone-300 text-stone-800 hover:bg-stone-200 transition">
+                                    🖨️ Чек
+                                </button>
+                                <button type="button" onclick="advanceOrderStatus(${idx}, 'cooking'); setStaffQueueFilter('active');" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-stone-300 text-cp-blue hover:bg-cp-blueSoft transition">
+                                    ↺ Вернуть в работу
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // ACTIVE ORDER / RESERVATION CARD WITH BOLD COLOR-CODED HEADER & STRUCTURED ITEMS
+                const cardBorderClass = isRes
+                    ? 'border-2 border-indigo-500 border-l-[10px] border-l-indigo-600 bg-indigo-50/20'
+                    : o.status === 'ready'
+                    ? 'border-2 border-emerald-600 border-l-[10px] border-l-emerald-600 bg-emerald-50/15'
+                    : isCeramic
+                    ? 'border-2 border-teal-600/40 border-l-[10px] border-l-teal-600 bg-white'
+                    : 'border-2 border-cp-blue/40 border-l-[10px] border-l-cp-blue bg-white';
+
+                const typeBannerHtml = isRes
+                    ? `<div class="bg-indigo-600 text-white px-3.5 py-1.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+                           <span>📅 БРОНЬ СТОЛИКА В ЗАЛЕ • ${escapeHtml(o.vessel)}</span>
+                           <span class="font-mono bg-white text-indigo-950 px-2.5 py-0.5 rounded-lg font-extrabold">⏰ Визит: ${escapeHtml(o.arrivalInfo)}</span>
+                       </div>`
+                    : `<div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-cp-border">
+                           <div class="flex flex-wrap items-center gap-2">
+                               <span class="px-3 py-1 rounded-lg font-mono text-xs font-extrabold uppercase ${isCeramic ? 'bg-teal-700 text-white' : 'bg-cp-blue text-white'}">
+                                   ${isCeramic ? '☕ В ЗАЛЕ (В КЕРАМИКЕ)' : '🥤 С СОБОЙ (В СТАКАНЧИКЕ)'}
+                               </span>
+                               <span class="px-3 py-1 rounded-lg font-mono text-xs font-extrabold bg-cp-ochreSoft border border-cp-ochre text-cp-ink">
+                                   ⏰ Готовность: ${escapeHtml(o.arrivalInfo || 'Сразу ~7 мин')}
+                               </span>
+                           </div>
+                           <span class="font-mono text-xs font-extrabold px-3 py-1 rounded-full uppercase ${o.status === 'ready' ? 'bg-emerald-600 text-white shadow' : 'bg-amber-100 text-amber-950 border border-amber-300'}">
+                               ${o.status === 'ready' ? '🔔 ГОТОВ • ЖДЁТ У СТОЙКИ' : '⏳ ШАГ 1: ГОТОВИТСЯ НА БАРЕ'}
+                           </span>
+                       </div>`;
+
+                // Parse items into structured visual rows (Quantity pill + Bold Dish Name + Modifiers)
+                const structuredItemsHtml = (o.items || []).map(line => {
+                    const str = String(line || '');
+                    const modMatch = str.match(/^(.*?)\s*\[(.*)\]$/);
+                    const mainPart = modMatch ? modMatch[1] : str;
+                    const modsPart = modMatch ? modMatch[2] : '';
+                    const qtyMatch = mainPart.match(/^(.*?)\s*\((\d+\s*шт)\)$/);
+                    const dishTitle = qtyMatch ? qtyMatch[1] : mainPart;
+                    const qtyBadge = qtyMatch ? qtyMatch[2] : (isRes ? 'Бронь' : '1 шт');
+                    return `
+                        <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-cp-border">
+                            <div class="flex items-center gap-2.5">
+                                <span class="bg-cp-ink text-cp-ochre font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg shrink-0">${escapeHtml(qtyBadge)}</span>
+                                <span class="font-bold text-sm text-cp-ink">${escapeHtml(dishTitle)}</span>
+                            </div>
+                            ${modsPart ? `<span class="font-mono text-[11px] font-bold bg-cp-blueSoft text-cp-blue px-2.5 py-1 rounded-lg border border-cp-blue/20">${escapeHtml(modsPart)}</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="rounded-2xl p-4 sm:p-5 shadow-md space-y-3.5 ${cardBorderClass}">
+                        ${typeBannerHtml}
+
+                        <!-- Main Guest Identity Row (Large, Unmistakable Number & Name) -->
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-cp-ink text-white font-mono font-extrabold text-lg sm:text-xl px-3.5 py-2 rounded-2xl shadow-sm">
+                                    ${escapeHtml(o.id)}
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-mono font-bold uppercase text-cp-muted tracking-wider">${isRes ? 'Гость (Бронь столика)' : 'Имя на стаканчике'}</div>
+                                    <div class="font-display font-extrabold text-lg sm:text-xl uppercase text-cp-ink tracking-tight">${escapeHtml(o.clientName)}</div>
+                                </div>
+                            </div>
+                            <div class="text-left sm:text-right bg-cp-bg/80 px-3.5 py-2 rounded-xl border border-cp-border">
+                                <div class="text-[10px] font-mono uppercase text-cp-muted">Связь (${o.notifyChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram'})</div>
+                                <div class="font-mono font-extrabold text-xs sm:text-sm text-cp-blue">${escapeHtml(o.clientPhone)}</div>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-cp-bg/60 rounded-xl p-2.5 text-xs">
-                            <div><span class="text-cp-muted">Готовность:</span> <b class="text-cp-ink">${o.arrivalInfo || 'Сразу ~7 мин'}</b></div>
-                            <div><span class="text-cp-muted">Подача:</span> <b class="text-cp-ink">${o.vessel || 'С собой'}</b></div>
-                            <div><span class="text-cp-muted">Связь (${o.notifyChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram'}):</span> <b class="font-mono text-cp-blue">${o.clientPhone}</b></div>
-                        </div>
-
-                        <!-- Quick Barista Prep Time Adjuster (5 to 30 min) -->
+                        <!-- Quick Barista Prep Time Adjuster (Only for non-ready orders) -->
+                        ${o.status !== 'ready' && !isRes ? `
                         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                            <span class="font-mono text-[10px] uppercase text-cp-muted mr-1">Таймер готовки:</span>
+                            <span class="font-mono text-[10px] font-bold uppercase text-cp-muted mr-1">Сменить таймер:</span>
                             ${['Через 5 мин', 'Через 10 мин', 'Через 15 мин', 'Через 20 мин', 'Через 30 мин'].map(tLbl => `
-                                <button type="button" onclick="setOrderCustomPrepTime(${idx}, '${tLbl}')" class="px-2 py-1 rounded-lg font-mono text-[10px] font-bold border ${o.arrivalInfo === tLbl ? 'bg-cp-blue text-white border-cp-blue' : 'bg-cp-surface text-cp-ink border-cp-border hover:bg-cp-pill'} transition">
+                                <button type="button" onclick="setOrderCustomPrepTime(${idx}, '${tLbl}')" class="px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold border ${o.arrivalInfo === tLbl ? 'bg-cp-blue text-white border-cp-blue shadow-sm' : 'bg-cp-surface text-cp-ink border-cp-border hover:bg-cp-pill'} transition">
                                     ${tLbl.replace('Через ', '~')}
                                 </button>
                             `).join('')}
                         </div>
+                        ` : ''}
 
-                        <!-- Payment Escrow & Receipt Verification Bar -->
-                        <div class="rounded-xl p-3 border ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? 'bg-emerald-50 border-emerald-300' : o.paymentStatus === 'rejected' ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-300'} space-y-2">
-                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <div class="font-bold text-cp-ink">
-                                    💳 Касса: <span class="font-mono">${escapeHtml(o.paymentBank || 'Kaspi Gold')}</span> • К переводу: <span class="font-mono font-extrabold">${Number(o.total || 0).toLocaleString('ru-RU')} ₸</span>
-                                    ${o.spentBonuses > 0 ? `<span class="text-emerald-800 font-mono text-[11px] ml-1">(Списано бонусов: −${o.spentBonuses} ₸)</span>` : ''}
+                        <!-- Payment Escrow Verification Bar (Hidden for free 0 ₸ Table Reservations!) -->
+                        ${(Number(o.total) > 0 || !isRes) ? `
+                        <div class="rounded-xl p-3 border ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? 'bg-emerald-50 border-emerald-300' : 'bg-amber-50 border-amber-400'}">
+                            ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? `
+                                <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-emerald-900">
+                                    <span>✅ Оплачено: <span class="font-mono">${escapeHtml(o.paymentBank || 'Kaspi Gold')} (${Number(o.total || 0).toLocaleString('ru-RU')} ₸)</span></span>
+                                    <span class="font-mono text-[11px] bg-emerald-700 text-white px-2.5 py-0.5 rounded-full">+${o.earnedCashback || 0} ₸ бонусов начислено</span>
                                 </div>
-                                <span class="font-mono text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${o.paymentStatus === 'verified' || o.paymentStatus === 'paid_by_bonuses' ? 'bg-emerald-700 text-white' : o.paymentStatus === 'rejected' ? 'bg-red-700 text-white' : 'bg-amber-500 text-cp-ink'}">
-                                    ${o.paymentStatus === 'verified' ? `✓ ОПЛАТА ПРОВЕРЕНА (+${o.earnedCashback || 0} ₸ НАЧИСЛЕНО)` : o.paymentStatus === 'paid_by_bonuses' ? '✓ ОПЛАЧЕНО БОНУСАМИ' : o.paymentStatus === 'rejected' ? '✕ ОПЛАТА НЕ ПОСТУПИЛА (ОТКЛОНЁН)' : `⏳ СВЕРЬТЕ ПЕРЕВОД (+${o.earnedCashback || 0} ₸ В ХОЛДЕ)`}
-                                </span>
-                            </div>
-                            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-cp-muted">
-                                <span>Квитанция / Чек от гостя: <b class="font-mono text-cp-ink">${escapeHtml(o.receiptCode || 'Сверка по имени и сумме')}</b></span>
-                                ${o.paymentStatus !== 'verified' && o.paymentStatus !== 'paid_by_bonuses' && o.paymentStatus !== 'rejected' ? `
+                            ` : `
+                                <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                    <div>
+                                        <span class="font-extrabold text-cp-ink">💳 Сверка оплаты: ${escapeHtml(o.paymentBank || 'Kaspi Gold')} — <span class="font-mono text-sm">${Number(o.total || 0).toLocaleString('ru-RU')} ₸</span></span>
+                                        <div class="text-[11px] text-cp-muted mt-0.5">Чек: <b class="font-mono text-cp-ink">${escapeHtml(o.receiptCode || 'По имени и сумме')}</b> • Бонусы (+${o.earnedCashback || 0} ₸) ждут подтверждения</div>
+                                    </div>
                                     <div class="flex flex-wrap gap-1.5">
-                                        <button type="button" onclick="verifyOrderPayment(${idx})" class="bg-emerald-700 hover:bg-emerald-800 text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
-                                            ✓ Подтвердить перевод (+${o.earnedCashback || 0} ₸ бонусов)
+                                        <button type="button" onclick="verifyOrderPayment(${idx})" class="bg-emerald-700 hover:bg-emerald-800 text-white font-mono text-[11px] font-extrabold px-3 py-2 rounded-xl transition shadow-sm">
+                                            ✓ Подтвердить перевод (+${o.earnedCashback || 0} ₸)
                                         </button>
-                                        <button type="button" onclick="rejectOrderPayment(${idx})" class="bg-red-100 hover:bg-red-200 text-red-800 font-mono text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition">
+                                        <button type="button" onclick="rejectOrderPayment(${idx})" class="bg-red-100 hover:bg-red-200 text-red-800 font-mono text-[11px] font-bold px-2.5 py-2 rounded-xl transition">
                                             ✕ Не оплачен
                                         </button>
                                     </div>
-                                ` : ''}
-                            </div>
+                                </div>
+                            `}
+                        </div>
+                        ` : `
+                        <div class="rounded-xl px-3.5 py-2 bg-indigo-100/80 border border-indigo-300 flex items-center justify-between text-xs font-bold text-indigo-950">
+                            <span>📅 Бронь столика без предоплаты (Заказ по меню на месте)</span>
+                            <span class="font-mono text-[11px]">Стол: ${escapeHtml(o.vessel)}</span>
+                        </div>
+                        `}
+
+                        <!-- Structured Dish / Drink Items -->
+                        <div class="bg-cp-surface rounded-xl p-3 space-y-2 border border-cp-border">
+                            ${structuredItemsHtml}
+                            ${Number(o.total) > 0 ? `<div class="pt-1 text-right font-mono text-xs font-extrabold text-cp-ink">Итого к оплате: ${Number(o.total).toLocaleString('ru-RU')} ₸</div>` : ''}
                         </div>
 
-                        <div class="bg-cp-surface rounded-xl p-3 space-y-1 text-xs font-semibold text-cp-ink border border-cp-border">
-                            ${o.items.map(line => `<div>• ${escapeHtml(line)}</div>`).join('')}
-                            <div class="pt-1 text-right font-mono text-xs font-bold text-cp-muted">Сумма: ${o.total.toLocaleString('ru-RU')} ₸</div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2 pt-1">
-                            <button onclick="advanceOrderStatus(${idx}, 'cooking')" class="px-3.5 py-2 rounded-xl text-xs font-bold ${o.status === 'cooking' ? 'bg-cp-ink text-white' : 'bg-cp-pill text-cp-ink hover:bg-cp-pillHover'} transition">
-                                1. Готовится
+                        <!-- Clear Step-by-Step Barista Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            ${isRes ? `
+                                <button type="button" onclick="sendWorkerReservationReminderToGuest(${idx})" class="px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition flex items-center gap-1">
+                                    <span>🔔 Напомнить гостю о брони (Push + WA)</span>
+                                </button>
+                            ` : ''}
+                            <button type="button" onclick="advanceOrderStatus(${idx}, 'cooking')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold ${o.status === 'cooking' ? 'bg-cp-ink text-white shadow' : 'bg-cp-pill text-cp-ink hover:bg-cp-pillHover'} transition">
+                                ${isRes ? '1. Столик закреплён' : '1. Готовится'}
                             </button>
-                            <button onclick="advanceOrderStatus(${idx}, 'ready')" class="px-3.5 py-2 rounded-xl text-xs font-bold ${o.status === 'ready' ? 'bg-cp-blue text-white' : 'bg-cp-blueSoft text-cp-blue hover:bg-cp-blue hover:text-white'} transition">
-                                2. Готов (Позвать по имени)
+                            <button type="button" onclick="advanceOrderStatus(${idx}, 'ready')" class="px-4 py-2.5 rounded-xl text-xs font-extrabold ${o.status === 'ready' ? 'bg-emerald-600 text-white shadow-md' : 'bg-cp-blue text-white hover:bg-cp-blueDark shadow-sm'} transition">
+                                ${isRes ? '2. Столик готов (Уведомить)' : '2. Готов (Позвать по имени)'}
                             </button>
-                            <a href="${waReadyLink}" target="_blank" rel="noopener noreferrer" onclick="advanceOrderStatus(${idx}, 'ready')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-cp-whatsapp hover:bg-emerald-800 text-white transition inline-flex items-center gap-1.5">
+                            <a href="${waReadyLink}" target="_blank" rel="noopener noreferrer" onclick="advanceOrderStatus(${idx}, 'ready')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-cp-whatsapp hover:bg-emerald-800 text-white transition inline-flex items-center gap-1.5 shadow-sm">
                                 <span>Уведомить в WhatsApp</span>
                             </a>
-                            <a href="${waClarifyLink}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl text-xs font-semibold bg-cp-pill hover:bg-cp-pillHover text-cp-ink transition">
+                            <a href="${waClarifyLink}" target="_blank" rel="noopener noreferrer" class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-cp-pill hover:bg-cp-pillHover text-cp-ink transition">
                                 Уточнить
                             </a>
-                            <button type="button" onclick="printOrderThermalSlip(${idx})" class="px-3 py-2 rounded-xl text-xs font-bold bg-cp-surface border border-cp-border hover:bg-cp-pill text-cp-ink transition">
+                            <button type="button" onclick="printOrderThermalSlip(${idx})" class="px-3 py-2.5 rounded-xl text-xs font-bold bg-cp-surface border border-cp-border hover:bg-cp-pill text-cp-ink transition">
                                 🖨️ Чек / Стикер
                             </button>
-                            <button onclick="advanceOrderStatus(${idx}, 'done')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-stone-200 text-stone-800 hover:bg-stone-300 transition ml-auto">
-                                Выдан гостю
+                            <button type="button" onclick="advanceOrderStatus(${idx}, 'done')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-stone-200 text-stone-800 hover:bg-stone-300 transition ml-auto">
+                                ${isRes ? 'Гость за столом (В архив)' : 'Выдан гостю'}
                             </button>
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') + '</div>';
+        }
+
+        function setStaffQueueFilter(filterName) {
+            state.staffQueueFilter = filterName;
+            renderStaffDashboard();
         }
 
         function saveCloudSettings() {
@@ -6765,6 +7134,11 @@
             const ord = state.staffOrders[idx];
             if (!ord) return;
             ord.status = nextStatus;
+            if (nextStatus === 'ready') {
+                ord.readyAtMs = Date.now();
+            } else if (nextStatus === 'done') {
+                ord.doneAtMs = Date.now();
+            }
             if ((nextStatus === 'cooking' || nextStatus === 'ready' || nextStatus === 'done') && ord.paymentStatus === 'pending_verification') {
                 ord.paymentStatus = 'verified';
                 ord.bonusCredited = true;
@@ -6833,19 +7207,151 @@
             renderLivePickupBoard();
         }
 
+        function computeReservationDateMeta(dayChoice, timeStr) {
+            const now = new Date();
+            let offsetDays = 0;
+            if (String(dayChoice).includes('Завтра')) offsetDays = 1;
+            else if (String(dayChoice).includes('Послезавтра')) offsetDays = 2;
+            const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+            const dd = String(target.getDate()).padStart(2, '0');
+            const mm = String(target.getMonth() + 1).padStart(2, '0');
+            const yyyy = target.getFullYear();
+            const [hh, min] = String(timeStr || '19:00').split(':').map(x => parseInt(x, 10) || 0);
+            const scheduledMs = new Date(yyyy, target.getMonth(), target.getDate(), hh, min, 0).getTime();
+            const baseWord = offsetDays === 0 ? 'Сегодня' : offsetDays === 1 ? 'Завтра' : 'Послезавтра';
+            return {
+                offsetDays,
+                dateFormatted: `${baseWord} (${dd}.${mm})`,
+                isoDate: `${yyyy}-${mm}-${dd}`,
+                scheduledMs
+            };
+        }
+
+        function refreshReservationSelectDateLabels() {
+            const dayEl = document.getElementById('reserve-day-select');
+            if (!dayEl) return;
+            const m0 = computeReservationDateMeta('Сегодня', '19:00');
+            const m1 = computeReservationDateMeta('Завтра', '19:00');
+            const m2 = computeReservationDateMeta('Послезавтра', '19:00');
+            if (dayEl.options && dayEl.options.length >= 3) {
+                dayEl.options[0].text = m0.dateFormatted;
+                dayEl.options[1].text = m1.dateFormatted;
+                dayEl.options[2].text = m2.dateFormatted;
+            }
+        }
+
         function updateReservationSummary() {
+            refreshReservationSelectDateLabels();
             const dayEl = document.getElementById('reserve-day-select');
             const timeEl = document.getElementById('reserve-exact-time');
             const guestsEl = document.getElementById('reserve-guests-select');
             const zoneEl = document.getElementById('reserve-zone-select');
-            state.reserveDate = dayEl ? dayEl.value : 'Сегодня';
+            const rawDay = dayEl ? dayEl.value : 'Сегодня';
             state.reserveTime = (timeEl && timeEl.value) ? timeEl.value : '19:00';
+            const meta = computeReservationDateMeta(rawDay, state.reserveTime);
+            state.reserveDate = meta.dateFormatted;
+            state.reserveDateIso = meta.isoDate;
+            state.reserveScheduledMs = meta.scheduledMs;
             state.reserveGuests = guestsEl ? guestsEl.value : '2 гостя';
             state.reserveZone = zoneEl ? zoneEl.value : 'У окна';
             if (state.orderTimingMode === 'reserve') {
                 state.arrivalPreset = `Бронь: ${state.reserveDate} к ${state.reserveTime} (${state.reserveGuests}, ${state.reserveZone})`;
                 state.serveVessel = 'В зале (В керамике)';
                 syncAllLabels();
+            }
+        }
+
+        function setAutoClearReadyMins(mins) {
+            state.autoClearReadyMins = Number(mins) || 10;
+            try { localStorage.setItem('cp_auto_clear_ready_mins_v1', String(state.autoClearReadyMins)); } catch (e) {}
+            renderLivePickupBoard();
+            renderStaffDashboard();
+            const lbl = state.autoClearReadyMins < 1 ? '30 секунд (Тестовый режим)' : `${state.autoClearReadyMins} мин`;
+            showSystemToast('Авто-очистка табло', `Таймер скрытия готовых: ${lbl}`, 'Выполненные и готовые заказы будут автоматически уходить с табло в архив по истечении таймера.');
+        }
+
+        function getOrderAutoClearRemainingLabel(ord) {
+            const timeoutMs = (Number(state.autoClearReadyMins) || 10) * 60 * 1000;
+            const readySince = Number(ord.readyAtMs) || Date.now();
+            const leftMs = Math.max(0, timeoutMs - (Date.now() - readySince));
+            const leftSec = Math.ceil(leftMs / 1000);
+            if (leftSec <= 60) return `авто-скрытие ${leftSec}с`;
+            return `авто-скрытие ${Math.ceil(leftSec / 60)}м`;
+        }
+
+        function runBoardAutoCleanupSweep() {
+            const timeoutMs = (Number(state.autoClearReadyMins) || 10) * 60 * 1000;
+            const now = Date.now();
+            let changed = false;
+
+            (state.staffOrders || []).forEach(ord => {
+                // 1) Ensure every 'ready' order has a readyAtMs timestamp
+                if (ord.status === 'ready' && !ord.readyAtMs) {
+                    ord.readyAtMs = now;
+                }
+                // 2) Auto-disappear from Pickup Board when ready timeout expires!
+                if (ord.status === 'ready' && ord.readyAtMs && (now - ord.readyAtMs >= timeoutMs)) {
+                    ord.status = 'done';
+                    ord.doneAtMs = now;
+                    changed = true;
+                    if (typeof window.updateOrderStatus === 'function') {
+                        window.updateOrderStatus(ord.firestoreId || ord.id, 'done');
+                    }
+                    syncWithFirebaseCloud('coffee_people_orders', ord.id.replace('#', 'ORD_'), ord);
+                    showSystemToast(
+                        `${ord.id} • ${ord.clientName}`,
+                        `АВТО-ОЧИСТКА ТАБЛО • ${ord.id}`,
+                        `Заказ ${ord.id} автоматически перенесён с публичного табло в архив выданных.`
+                    );
+                }
+            });
+
+            if (changed) {
+                broadcastRealtimeSync();
+                updateStaffCounters();
+                if (!document.getElementById('staff-modal').classList.contains('hidden') && state.staffUser) {
+                    renderStaffDashboard();
+                }
+            } else {
+                const hasReady = (state.staffOrders || []).some(o => o.status === 'ready');
+                if (hasReady) renderLivePickupBoard();
+            }
+        }
+
+        setInterval(runBoardAutoCleanupSweep, 5000);
+
+        function sendWorkerReservationReminderToGuest(idx) {
+            const ord = state.staffOrders[idx];
+            if (!ord) return;
+            const reminderText = `📅 Напоминание от COFFEE PEOPLE (${ord.branch}): ждём вас по вашей брони столика ${ord.id} (${ord.arrivalInfo}, ${ord.vessel})! Ваш столик закреплён за вами.`;
+            ord.lastWorkerReminderAt = Date.now();
+            ord.lastWorkerReminderText = reminderText;
+            ord.reservationConfirmed = true;
+
+            if (typeof window.sendOrder === 'function') {
+                window.sendOrder({ ...ord, orderNumber: ord.id });
+            }
+            syncWithFirebaseCloud('coffee_people_orders', ord.id.replace('#', 'ORD_'), ord);
+            broadcastRealtimeSync();
+            renderStaffDashboard();
+
+            showSystemToast(ord.clientPhone, `📅 НАПОМИНАНИЕ О БРОНИ • ${ord.id}`, reminderText);
+            if (realtimeChannel) {
+                realtimeChannel.postMessage({
+                    type: 'CLIENT_TOAST',
+                    phone: ord.clientPhone,
+                    title: `📅 НАПОМИНАНИЕ О БРОНИ • ${ord.id}`,
+                    message: reminderText
+                });
+            }
+            sendTelegramBotPushToGuest(ord, `📅 *НАПОМИНАНИЕ О БРОНИ СТОЛИКА (${ord.id})*\n\nЗдравствуйте, *${ord.clientName}*!\nНапоминаем, что в *COFFEE PEOPLE (${ord.branch})* за вами закреплён столик:\n⏰ Время: *${ord.arrivalInfo}*\n🪑 Посадка: *${ord.vessel}*\n\nЖдём вас! Если хотите, чтобы мы приготовили кофе ровно к вашему входу, напишите нам в ответ.`);
+            sendAutoWhatsAppChannel2(ord.clientPhone, reminderText);
+            sendNtfyCloudPush(ord.clientPhone, `📅 Напоминание о брони ${ord.id}`, reminderText, true);
+
+            const cleanDigits = (ord.clientPhone || '').replace(/\D/g, '');
+            if (cleanDigits.length >= 10 && (!state.greenApiInstanceId || !state.greenApiToken) && ord.notifyChannel === 'whatsapp') {
+                const waUrl = `https://wa.me/${cleanDigits}?text=${encodeURIComponent(reminderText)}`;
+                window.open(waUrl, '_blank');
             }
         }
 
@@ -6856,6 +7362,7 @@
             const btnNow = document.getElementById('modal-timing-now');
             const boxRemote = document.getElementById('remote-time-options-box');
             const boxReserve = document.getElementById('advance-reserve-options-box');
+            const primaryBtn = document.getElementById('order-config-primary-btn');
 
             if (btnRemote) btnRemote.className = 'py-2.5 px-1.5 rounded-xl text-cp-muted font-semibold';
             if (btnReserve) btnReserve.className = 'py-2.5 px-1.5 rounded-xl text-cp-muted font-semibold';
@@ -6868,74 +7375,102 @@
                 if (state.arrivalPreset.startsWith('Приготовить') || state.arrivalPreset.startsWith('Бронь:')) {
                     state.arrivalPreset = 'Через 15 мин';
                 }
+                if (primaryBtn) primaryBtn.textContent = 'Сохранить параметры заказа';
             } else if (mode === 'reserve') {
-                if (btnReserve) btnReserve.className = 'py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
+                if (btnReserve) btnReserve.className = 'py-2.5 px-1.5 rounded-xl bg-indigo-600 text-white shadow-sm font-bold';
                 if (boxRemote) boxRemote.classList.add('hidden');
                 if (boxReserve) boxReserve.classList.remove('hidden');
+                // Pre-fill inline reservation name & phone if available
+                const rNameInp = document.getElementById('reserve-inline-name-input');
+                const rPhoneInp = document.getElementById('reserve-inline-phone-input');
+                const mNameInp = document.getElementById('modal-cup-name-input');
+                if (rNameInp && !rNameInp.value && (state.cupName || (mNameInp && mNameInp.value))) {
+                    rNameInp.value = state.cupName || mNameInp.value;
+                }
+                if (rPhoneInp && !rPhoneInp.value && (state.activeOrderPhone || (state.clientUser && state.clientUser.phone))) {
+                    rPhoneInp.value = state.activeOrderPhone || state.clientUser.phone;
+                }
                 updateReservationSummary();
+                if (primaryBtn) primaryBtn.textContent = '📅 Оформить и подтвердить бронь столика';
             } else {
                 if (btnNow) btnNow.className = 'py-2.5 px-1.5 rounded-xl bg-white text-cp-ink shadow-sm font-bold';
                 if (boxRemote) boxRemote.classList.add('hidden');
                 if (boxReserve) boxReserve.classList.add('hidden');
                 state.arrivalPreset = 'Приготовить сразу (~5–7 мин)';
+                if (primaryBtn) primaryBtn.textContent = 'Сохранить параметры заказа';
             }
             syncAllLabels();
+        }
+
+        function handleOrderConfigPrimaryAction() {
+            if (state.orderTimingMode === 'reserve') {
+                submitQuickTableReservationOnly();
+            } else {
+                closeOrderConfigModal();
+            }
         }
 
         function submitQuickTableReservationOnly() {
             unlockMobileAudioAndNotifications();
             updateReservationSummary();
-            const nameInp = document.getElementById('modal-cup-name-input');
-            const guestName = (nameInp && nameInp.value.trim()) ? nameInp.value.trim() : getEffectiveCupName();
+            const rNameInp = document.getElementById('reserve-inline-name-input');
+            const mNameInp = document.getElementById('modal-cup-name-input');
+            const rPhoneInp = document.getElementById('reserve-inline-phone-input');
+            const rNoteInp = document.getElementById('reserve-inline-note-input');
+
+            let guestName = (rNameInp && rNameInp.value.trim()) || (mNameInp && mNameInp.value.trim()) || getEffectiveCupName();
             if (!guestName || guestName === 'Гость' || guestName.length < 2) {
-                if (nameInp) {
-                    nameInp.classList.add('shake-error', 'ring-2', 'ring-red-500');
-                    nameInp.focus();
-                    setTimeout(() => nameInp.classList.remove('shake-error', 'ring-2', 'ring-red-500'), 2000);
-                }
-                showSystemToast('Бронь столика', 'Укажите ваше имя', 'Введите ваше имя в поле ниже, чтобы бариста закрепил за вами столик.');
-                return;
+                guestName = (state.clientUser && state.clientUser.name && state.clientUser.name !== 'Гость')
+                    ? state.clientUser.name
+                    : 'Гость (Бронь столика)';
             }
             syncCupName(guestName);
 
-            let nextSeq = 101;
-            try {
-                const storedSeq = parseInt(localStorage.getItem(STORAGE_KEY_ORDER_SEQ) || '100', 10);
-                nextSeq = (isNaN(storedSeq) ? 100 : storedSeq) + 1;
-                localStorage.setItem(STORAGE_KEY_ORDER_SEQ, String(nextSeq));
-            } catch (e) {
-                nextSeq = 101 + state.staffOrders.length;
+            if (rPhoneInp && rPhoneInp.value.trim()) {
+                state.activeOrderPhone = rPhoneInp.value.trim();
             }
-            const orderId = `#${nextSeq}`;
-            const reserveDetails = `Бронь столика: ${state.reserveDate} к ${state.reserveTime} • ${state.reserveGuests} • ${state.reserveZone}`;
+            const guestPhone = getEffectiveOrderPhone();
+            const customNote = (rNoteInp && rNoteInp.value.trim()) ? rNoteInp.value.trim() : '';
+
+            const nextSeq = generateNextOrderSeqNumber();
+            const orderId = `#Б-${nextSeq}`;
+            const uniqueFsId = `RES_${nextSeq}_${Date.now().toString(36)}`;
+            const reserveDetails = `Бронь столика: ${state.reserveDate} к ${state.reserveTime} • ${state.reserveGuests} • ${state.reserveZone}${customNote ? ' (' + customNote + ')' : ''}`;
             const cartItemsList = state.cart.length > 0
-                ? state.cart.map(c => `${c.name} (${c.qty} шт)`)
+                ? [reserveDetails, ...state.cart.map(c => `${c.name} (${c.qty} шт)${c.mods && c.mods.length ? ' [' + c.mods.join(', ') + ']' : ''}`)]
                 : [reserveDetails];
             const shortList = state.cart.length > 0
-                ? [reserveDetails, ...state.cart.map(c => `${c.name} ×${c.qty}`)]
-                : [reserveDetails];
+                ? [`Бронь: ${state.reserveGuests}, ${state.reserveZone}`, ...state.cart.map(c => `${c.name} ×${c.qty}`)]
+                : [`Бронь: ${state.reserveGuests}, ${state.reserveZone}${customNote ? ' • ' + customNote : ''}`];
             const { finalTotal } = calculateTotals();
 
             const resOrderObj = {
                 id: orderId,
+                firestoreId: uniqueFsId,
+                orderType: 'reservation',
+                isReservation: true,
                 time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
                 branch: state.branch,
                 arrivalInfo: `${state.reserveDate} к ${state.reserveTime}`,
                 vessel: `Бронь (${state.reserveGuests}, ${state.reserveZone})`,
                 clientName: guestName,
-                clientPhone: getEffectiveOrderPhone(),
+                clientPhone: guestPhone,
                 clientTgId: (state.clientUser && state.clientUser.tgId) || null,
                 notifyChannel: state.notifyChannel || 'telegram',
+                paymentBank: finalTotal > 0 ? ((BANK_CONFIGS[state.paymentMethod] && BANK_CONFIGS[state.paymentMethod].name) || 'Kaspi Gold') : 'Без депозита (Бронь)',
+                paymentStatus: finalTotal > 0 ? 'pending_verification' : 'verified',
+                receiptCode: customNote || `Бронь на ${state.reserveDate} к ${state.reserveTime}`,
                 items: cartItemsList,
                 shortItems: shortList,
                 subtotal: finalTotal,
                 total: finalTotal,
-                earnedCashback: 0,
+                earnedCashback: finalTotal > 0 ? Math.max(25, Math.round(finalTotal * 0.05)) : 0,
                 spentBonuses: 0,
                 status: 'cooking'
             };
 
             state.staffOrders.unshift(resOrderObj);
+            __cpNotifiedStatusMap.set(orderId, 'cooking');
             if (!state.sessionOrderIds.includes(orderId)) {
                 state.sessionOrderIds.push(orderId);
                 try { localStorage.setItem(STORAGE_KEY_SESSION_ORDERS, JSON.stringify(state.sessionOrderIds)); } catch (e) {}
@@ -6943,13 +7478,46 @@
             if (typeof window.sendOrder === 'function') {
                 window.sendOrder({ ...resOrderObj, orderNumber: orderId });
             }
+            syncWithFirebaseCloud('coffee_people_orders', uniqueFsId, resOrderObj);
+
+            // Also record in guest profile history so they see their reservation in Profile
+            if (!state.clientUser) {
+                state.clientUser = {
+                    name: guestName,
+                    phone: validateKzMobilePhone(guestPhone).valid ? guestPhone : '',
+                    pin: '0000',
+                    bonuses: 100,
+                    welcomeBonusGranted: true,
+                    orders: []
+                };
+            }
+            state.clientUser.orders = state.clientUser.orders || [];
+            state.clientUser.orders.unshift({
+                id: orderId,
+                subtotal: finalTotal,
+                total: finalTotal,
+                paymentStatus: resOrderObj.paymentStatus,
+                receiptCode: resOrderObj.receiptCode,
+                earnedCashback: resOrderObj.earnedCashback,
+                cashback: 0,
+                pendingCashback: resOrderObj.earnedCashback,
+                spentBonuses: 0,
+                date: `${state.reserveDate} к ${state.reserveTime}`
+            });
+            syncAccountToStorage();
+
             broadcastRealtimeSync();
             updateStaffCounters();
+            syncAllLabels();
             closeOrderConfigModal();
+            if (rNoteInp) rNoteInp.value = '';
+
+            // Scroll smoothly to Pickup Board and open the Live Reservation Ticket Modal so the user immediately sees their reservation!
+            openOrderFromBoard(orderId);
             showSystemToast(
                 `${state.branch} • ${state.reserveDate} к ${state.reserveTime}`,
-                `БРОНЬ ${orderId} ПОДТВЕРЖДЕНА • ${guestName.toUpperCase()}`,
-                `${reserveDetails}. Ждём вас в COFFEE PEOPLE!`
+                `📅 БРОНЬ ${orderId} ОФОРМЛЕНА • ${guestName.toUpperCase()}`,
+                `${reserveDetails}. Ваша бронь отображена на табло и передана бариста!`
             );
         }
 
@@ -7367,15 +7935,10 @@
             const phone = getEffectiveOrderPhone();
             const guestName = getEffectiveCupName();
 
-            let nextSeq = 101;
-            try {
-                const storedSeq = parseInt(localStorage.getItem(STORAGE_KEY_ORDER_SEQ) || '100', 10);
-                nextSeq = (isNaN(storedSeq) ? 100 : storedSeq) + 1;
-                localStorage.setItem(STORAGE_KEY_ORDER_SEQ, String(nextSeq));
-            } catch (e) {
-                nextSeq = 101 + state.staffOrders.length;
-            }
-            const orderId = `#${nextSeq}`;
+            const nextSeq = generateNextOrderSeqNumber();
+            const isResMode = state.orderTimingMode === 'reserve';
+            const orderId = isResMode ? `#Б-${nextSeq}` : `#${nextSeq}`;
+            const uniqueFsOrderDocId = `ORD_${nextSeq}_${Date.now().toString(36)}`;
 
             const summaryItems = state.cart.map(c => `${c.name} (${c.qty} шт)${c.mods.length ? ' [' + c.mods.join(', ') + ']' : ''}`);
             const shortItems = state.cart.map(c => c.qty > 1 ? `${c.name} ×${c.qty}` : c.name);
@@ -7412,6 +7975,9 @@
 
             const newOrderObj = {
                 id: orderId,
+                firestoreId: uniqueFsOrderDocId,
+                isReservation: isResMode,
+                orderType: isResMode ? 'reservation' : 'preorder',
                 time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
                 branch: state.branch,
                 arrivalInfo,
@@ -7718,20 +8284,21 @@
         window.sendOrder = async (order) => {
             if (!db) return null;
             try {
-                const cleanDocId = String(order.orderNumber || order.id || Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
+                const rawNum = String(order.orderNumber || order.id || Date.now());
+                const fallbackId = rawNum.replace(/[^a-zA-Z0-9_-]/g, "") + "_" + Date.now().toString(36);
+                const cleanDocId = String(order.firestoreId || fallbackId).replace(/[^a-zA-Z0-9_-]/g, "");
+                const targetStatus = (order.status === 'ready' || order.status === 'done' || order.status === 'rejected')
+                    ? order.status
+                    : "preparing";
                 const payload = {
                     ...order,
+                    firestoreId: cleanDocId,
                     orderNumber: order.orderNumber || order.id || `#${cleanDocId}`,
-                    status: "preparing",
+                    status: targetStatus,
                     createdAt: serverTimestamp()
                 };
-                if (cleanDocId) {
-                    await setDoc(doc(db, "orders", cleanDocId), payload, { merge: true });
-                    return cleanDocId;
-                } else {
-                    const ref = await addDoc(collection(db, "orders"), payload);
-                    return ref.id;
-                }
+                await setDoc(doc(db, "orders", cleanDocId), payload, { merge: true });
+                return cleanDocId;
             } catch (err) {
                 console.warn("[CP] Запись в Firestore отложена (проверьте firebaseConfig / Rules):", err.message);
                 return null;

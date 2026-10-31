@@ -32,20 +32,21 @@ console.log("[CP] Firebase подключён:", firebaseConfig.projectId);
 // 1) Гость отправляет заказ (вызывается при оформлении предзаказа)
 window.sendOrder = async (order) => {
     try {
-        const cleanDocId = String(order.orderNumber || order.id || Date.now()).replace(/[^a-zA-Z0-9_-]/g, "");
+        const rawNum = String(order.orderNumber || order.id || Date.now());
+        const fallbackId = rawNum.replace(/[^a-zA-Z0-9_-]/g, "") + "_" + Date.now().toString(36);
+        const cleanDocId = String(order.firestoreId || fallbackId).replace(/[^a-zA-Z0-9_-]/g, "");
+        const targetStatus = (order.status === 'ready' || order.status === 'done' || order.status === 'rejected')
+            ? order.status
+            : "preparing";
         const payload = {
             ...order,
+            firestoreId: cleanDocId,
             orderNumber: order.orderNumber || order.id || `#${cleanDocId}`,
-            status: "preparing",
+            status: targetStatus,
             createdAt: serverTimestamp()
         };
-        if (cleanDocId) {
-            await setDoc(doc(db, "orders", cleanDocId), payload, { merge: true });
-            return cleanDocId;
-        } else {
-            const ref = await addDoc(collection(db, "orders"), payload);
-            return ref.id;
-        }
+        await setDoc(doc(db, "orders", cleanDocId), payload, { merge: true });
+        return cleanDocId;
     } catch (err) {
         console.warn("[CP] Ошибка отправки заказа в Firestore:", err.message);
         return null;
