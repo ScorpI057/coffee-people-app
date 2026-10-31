@@ -1369,6 +1369,21 @@
                     </div>
                 </div>
 
+                <!-- Promo Code Box inside Checkout Drawer (Synced with Sidebar & Cloud Single-Use Registry) -->
+                <div class="bg-white rounded-2xl p-4 border border-cp-border space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase text-cp-ink">Промокод на скидку (1 раз на гостя)</span>
+                        <button type="button" onclick="clearActivePromoCode()" id="chk-clear-promo-btn" class="hidden text-[10px] font-mono font-bold text-red-600 hover:underline">Сбросить код ✕</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input id="checkout-promo-input" type="text" oninput="document.getElementById('sidebar-promo-input').value = this.value.toUpperCase();" placeholder="Введите код (напр. PETRO10)" class="flex-1 bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold uppercase text-cp-ink focus:outline-none">
+                        <button type="button" onclick="applyPromo('checkout')" class="bg-cp-blue hover:bg-cp-blueDark text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shrink-0">
+                            Применить
+                        </button>
+                    </div>
+                    <p id="checkout-promo-msg" class="text-[11px] font-semibold hidden"></p>
+                </div>
+
                 <!-- Bonus Payment Selector (Unlocked at >= 200 Bonuses) -->
                 <div class="bg-cp-ochreSoft rounded-2xl p-4 border border-cp-ochre space-y-2.5">
                     <div class="flex items-center justify-between">
@@ -1536,17 +1551,28 @@
                     </div>
 
                     <!-- Payment Verification & Anti-Fraud Escrow Box -->
-                    <div class="bg-cp-ochreSoft/90 border border-cp-ochre rounded-2xl p-3.5 text-left space-y-2">
+                    <div class="bg-cp-ochreSoft/90 border-2 border-cp-ochre rounded-2xl p-3.5 text-left space-y-2.5">
                         <div class="flex items-center justify-between gap-2">
                             <span class="font-mono text-[10px] font-extrabold uppercase text-cp-ink flex items-center gap-1">
-                                🛡️ Защита оплаты и бонусов (Escrow)
+                                🛡️ Подтверждение транзакции (Escrow)
                             </span>
-                            <span class="font-mono text-[9px] font-bold bg-cp-ink text-cp-ochre px-2 py-0.5 rounded">АНТИФРОД</span>
+                            <span id="kaspi-promo-badge" class="hidden font-mono text-[9px] font-extrabold bg-emerald-700 text-white px-2 py-0.5 rounded">ПРОМОКОД АКТИВЕН</span>
                         </div>
                         <p class="text-[11px] text-cp-ink/90 leading-snug">
-                            Укажите <b>последние 4 цифры чека / квитанции Kaspi</b> (или имя отправителя). Бонусы <b>+5%</b> резервируются и начисляются на счёт <b>только после подтверждения прихода перевода</b> бариста!
+                            Введите <b>последние 4 цифры чека / имя отправителя</b> или выберите быстрый способ подтверждения ниже. Бонусы <b>+5%</b> зачислятся сразу после сверки оплаты бариста:
                         </p>
-                        <input id="payment-receipt-code-input" type="text" maxlength="32" placeholder="Например: чек #4829 или имя отправителя" class="w-full bg-white border border-cp-border rounded-xl px-3 py-2 text-xs font-mono font-bold text-cp-ink focus:outline-none focus:border-cp-ink">
+                        <input id="payment-receipt-code-input" type="text" maxlength="40" placeholder="Обязательно: 4 цифры чека (напр. 4829) или имя отправителя" class="w-full bg-white border-2 border-cp-border rounded-xl px-3 py-2 text-xs font-mono font-bold text-cp-ink focus:outline-none focus:border-cp-ink">
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" onclick="fillReceiptQuickChip('Перевод со своего номера')" class="bg-white hover:bg-cp-pill border border-cp-border text-cp-ink font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+                                ✓ Перевёл со своего номера
+                            </button>
+                            <button type="button" onclick="fillReceiptQuickChip('Чек отправлен в WhatsApp')" class="bg-white hover:bg-cp-pill border border-cp-border text-cp-ink font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+                                📎 Пришлю чек в WhatsApp
+                            </button>
+                            <button type="button" onclick="fillReceiptQuickChip('Оплата по Kaspi QR у стойки')" class="bg-white hover:bg-cp-pill border border-cp-border text-cp-ink font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+                                🏪 Оплачу QR у стойки
+                            </button>
+                        </div>
                     </div>
 
                     <button id="confirm-bank-pay-btn" onclick="completeKaspiPayment()" class="w-full bg-cp-kaspi hover:opacity-95 text-white font-bold py-4 rounded-2xl shadow-md transition text-xs uppercase tracking-wider">
@@ -2620,6 +2646,12 @@
             globalSalePercent: 0, // 0..50%
             globalSaleTitle: 'Счастливые часы в COFFEE PEOPLE!',
             customPromos: { 'PETRO10': 0.10, 'COFFEE': 0.10, 'PRINCE15': 0.15, 'VIP20': 0.20 },
+            promoMeta: {
+                'PETRO10': { rate: 0.10, mode: 'once_per_user', usedBy: [], usedCount: 0 },
+                'COFFEE': { rate: 0.10, mode: 'once_per_user', usedBy: [], usedCount: 0 },
+                'PRINCE15': { rate: 0.15, mode: 'once_per_user', usedBy: [], usedCount: 0 },
+                'VIP20': { rate: 0.20, mode: 'once_total', usedBy: [], usedCount: 0 }
+            },
             cmsCategoryFilter: 'sec-specials',
             cmsStoryEditIdx: 0,
             cart: [],
@@ -5154,28 +5186,249 @@
             state.orderComment = val;
         }
 
-        function applyPromo() {
-            const inp = document.getElementById('sidebar-promo-input');
-            const msg = document.getElementById('sidebar-promo-msg');
-            const code = (inp ? inp.value : '').trim().toUpperCase();
-            const promosMap = state.customPromos || { 'PETRO10': 0.10, 'COFFEE': 0.10, 'PRINCE15': 0.15, 'VIP20': 0.20 };
-            if (code && promosMap[code]) {
-                state.promoCode = code;
-                state.promoDiscountRate = promosMap[code];
-                const pct = Math.round(promosMap[code] * 100);
-                if (msg) {
-                    msg.textContent = `Промокод ${code} активирован (−${pct}%)`;
-                    msg.classList.remove('hidden');
+        function getDeviceClientFingerprint() {
+            let cid = '';
+            try {
+                cid = localStorage.getItem('cp_device_client_id_v1') || '';
+                if (!cid) {
+                    cid = 'DEV_' + Math.random().toString(36).slice(2, 10).toUpperCase();
+                    localStorage.setItem('cp_device_client_id_v1', cid);
                 }
+            } catch (e) {
+                cid = 'DEV_SESSION';
+            }
+            return cid;
+        }
+
+        function ensurePromoMetaConsistency() {
+            if (!state.customPromos) state.customPromos = {};
+            if (!state.promoMeta) state.promoMeta = {};
+            Object.entries(state.customPromos).forEach(([code, rate]) => {
+                if (!state.promoMeta[code]) {
+                    state.promoMeta[code] = {
+                        rate: Number(rate) || 0.10,
+                        mode: code === 'VIP20' ? 'once_total' : 'once_per_user',
+                        usedBy: [],
+                        usedCount: 0
+                    };
+                } else {
+                    state.promoMeta[code].rate = Number(rate) || state.promoMeta[code].rate || 0.10;
+                    if (!Array.isArray(state.promoMeta[code].usedBy)) state.promoMeta[code].usedBy = [];
+                }
+            });
+        }
+
+        function getCurrentGuestPromoKeys() {
+            const keys = new Set();
+            keys.add(getDeviceClientFingerprint());
+            const ph = normalizePhoneDigits(getEffectiveOrderPhone());
+            if (ph && ph.length >= 10 && ph !== normalizePhoneDigits(state.cashierPhone)) {
+                keys.add('PH_' + ph);
+            }
+            if (state.clientUser) {
+                if (state.clientUser.phone) {
+                    const uph = normalizePhoneDigits(state.clientUser.phone);
+                    if (uph && uph.length >= 10) keys.add('PH_' + uph);
+                }
+                if (state.clientUser.tgId) keys.add('TG_' + state.clientUser.tgId);
+                if (state.clientUser.name && state.clientUser.name !== 'Гость') {
+                    keys.add('NM_' + state.clientUser.name.trim().toLowerCase());
+                }
+            }
+            const cupNm = (getEffectiveCupName() || '').trim().toLowerCase();
+            if (cupNm && cupNm !== 'гость' && cupNm.length >= 2) {
+                keys.add('NM_' + cupNm);
+            }
+            return Array.from(keys);
+        }
+
+        function checkPromoCodeEligibility(code) {
+            ensurePromoMetaConsistency();
+            const clean = String(code || '').trim().toUpperCase();
+            const promosMap = state.customPromos || {};
+            if (!clean || !promosMap[clean]) {
+                return { valid: false, reason: 'not_found' };
+            }
+            const meta = state.promoMeta[clean] || { rate: promosMap[clean], mode: 'once_per_user', usedBy: [], usedCount: 0 };
+
+            // 1) Check if single-use global coupon ('once_total') has already been used by anyone
+            if (meta.mode === 'once_total' && (meta.usedCount >= 1 || (Array.isArray(meta.usedBy) && meta.usedBy.length >= 1))) {
+                return {
+                    valid: false,
+                    reason: 'exhausted_total',
+                    message: `⛔ Разовый купон ${clean} уже был использован и больше не действует.`
+                };
+            }
+
+            // 2) Check if current user/phone/device already used this promo code ('once_per_user' or 'once_total')
+            const guestKeys = getCurrentGuestPromoKeys();
+            const usedSet = new Set(Array.isArray(meta.usedBy) ? meta.usedBy : []);
+            if (state.clientUser && Array.isArray(state.clientUser.usedPromos) && state.clientUser.usedPromos.includes(clean)) {
+                return {
+                    valid: false,
+                    reason: 'used_by_user',
+                    message: `⛔ Промокод ${clean} можно использовать только 1 раз! Вы уже применяли его ранее.`
+                };
+            }
+            try {
+                const localUsed = JSON.parse(localStorage.getItem('cp_used_promos_device_v1') || '[]');
+                if (Array.isArray(localUsed) && localUsed.includes(clean) && usedSet.size > 0) {
+                    return {
+                        valid: false,
+                        reason: 'used_by_device',
+                        message: `⛔ Промокод ${clean} действует только на 1 заказ! Вы уже использовали его.`
+                    };
+                }
+            } catch (e) {}
+
+            for (const gk of guestKeys) {
+                if (usedSet.has(gk)) {
+                    return {
+                        valid: false,
+                        reason: 'used_in_cloud',
+                        message: `⛔ Промокод ${clean} одноразовый и уже был использован с вашего аккаунта/номера.`
+                    };
+                }
+            }
+
+            // Also check active/completed non-rejected orders in staffOrders for this user
+            const usedInOrders = (state.staffOrders || []).some(o =>
+                o.appliedPromoCode === clean &&
+                o.status !== 'rejected' &&
+                o.paymentStatus !== 'rejected' &&
+                isOwnOrder(o)
+            );
+            if (usedInOrders) {
+                return {
+                    valid: false,
+                    reason: 'used_in_orders',
+                    message: `⛔ Вы уже использовали промокод ${clean} в своём заказе (доступен только 1 раз).`
+                };
+            }
+
+            return { valid: true, rate: Number(promosMap[clean]) || meta.rate || 0.10, meta };
+        }
+
+        function updatePromoStatusMessages(text, isError = false) {
+            ['sidebar-promo-msg', 'checkout-promo-msg'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (!text) {
+                    el.classList.add('hidden');
+                    el.textContent = '';
+                } else {
+                    el.textContent = text;
+                    el.className = `text-[11px] font-bold mt-1 ${isError ? 'text-red-600' : 'text-emerald-700'}`;
+                    el.classList.remove('hidden');
+                }
+            });
+            const clrBtn = document.getElementById('chk-clear-promo-btn');
+            if (clrBtn) {
+                if (state.promoCode && state.promoDiscountRate > 0) clrBtn.classList.remove('hidden');
+                else clrBtn.classList.add('hidden');
+            }
+        }
+
+        function clearActivePromoCode() {
+            state.promoCode = '';
+            state.promoDiscountRate = 0;
+            const sInp = document.getElementById('sidebar-promo-input');
+            const cInp = document.getElementById('checkout-promo-input');
+            if (sInp) sInp.value = '';
+            if (cInp) cInp.value = '';
+            updatePromoStatusMessages('');
+            updateCartViews();
+        }
+
+        function applyPromo(source = 'sidebar') {
+            ensurePromoMetaConsistency();
+            const sInp = document.getElementById('sidebar-promo-input');
+            const cInp = document.getElementById('checkout-promo-input');
+            const rawVal = source === 'checkout' && cInp ? cInp.value : (sInp ? sInp.value : (cInp ? cInp.value : ''));
+            const code = (rawVal || '').trim().toUpperCase();
+            if (sInp) sInp.value = code;
+            if (cInp) cInp.value = code;
+
+            const promosMap = state.customPromos || {};
+            const check = checkPromoCodeEligibility(code);
+
+            if (check.valid) {
+                state.promoCode = code;
+                state.promoDiscountRate = check.rate;
+                const pct = Math.round(check.rate * 100);
+                const modeNote = check.meta.mode === 'once_total' ? 'разовый купон' : '1 раз на гостя';
+                updatePromoStatusMessages(`✓ Промокод ${code} активирован (−${pct}% • ${modeNote})`, false);
+                showSystemToast('Промокод применён', `${code} (−${pct}%)`, `Скидка ${pct}% учтена в корзине! После оформления заказа промокод спишется.`);
             } else {
+                state.promoCode = '';
                 state.promoDiscountRate = 0;
-                const availKeys = Object.keys(promosMap).slice(0, 3).join(', ');
-                if (msg) {
-                    msg.textContent = `Промокод не найден (доступны: ${availKeys})`;
-                    msg.classList.remove('hidden');
+                if (check.reason === 'not_found') {
+                    const availKeys = Object.keys(promosMap).filter(k => checkPromoCodeEligibility(k).valid).slice(0, 4).join(', ');
+                    updatePromoStatusMessages(`⛔ Код не найден${availKeys ? ' (доступны: ' + availKeys + ')' : ''}`, true);
+                } else {
+                    updatePromoStatusMessages(check.message, true);
+                    showSystemToast('Промокод уже использован', code, check.message);
                 }
             }
             updateCartViews();
+        }
+
+        function consumeActivePromoCodeOnOrder(orderId) {
+            if (!state.promoCode || !state.promoDiscountRate) return null;
+            ensurePromoMetaConsistency();
+            const code = state.promoCode;
+            const meta = state.promoMeta[code];
+            if (meta) {
+                const guestKeys = getCurrentGuestPromoKeys();
+                if (!Array.isArray(meta.usedBy)) meta.usedBy = [];
+                guestKeys.forEach(gk => {
+                    if (!meta.usedBy.includes(gk)) meta.usedBy.push(gk);
+                });
+                meta.usedCount = (Number(meta.usedCount) || 0) + 1;
+            }
+            try {
+                const localUsed = JSON.parse(localStorage.getItem('cp_used_promos_device_v1') || '[]');
+                if (Array.isArray(localUsed) && !localUsed.includes(code)) {
+                    localUsed.push(code);
+                    localStorage.setItem('cp_used_promos_device_v1', JSON.stringify(localUsed));
+                }
+            } catch (e) {}
+            if (state.clientUser) {
+                if (!Array.isArray(state.clientUser.usedPromos)) state.clientUser.usedPromos = [];
+                if (!state.clientUser.usedPromos.includes(code)) state.clientUser.usedPromos.push(code);
+            }
+            // Clear active promo from cart state so it cannot be applied a second time
+            state.promoCode = '';
+            state.promoDiscountRate = 0;
+            const sInp = document.getElementById('sidebar-promo-input');
+            const cInp = document.getElementById('checkout-promo-input');
+            if (sInp) sInp.value = '';
+            if (cInp) cInp.value = '';
+            updatePromoStatusMessages('');
+            saveCmsConfigToStorageAndCloud();
+            return code;
+        }
+
+        function restorePromoCodeFromRejectedOrder(ord) {
+            if (!ord || !ord.appliedPromoCode) return;
+            ensurePromoMetaConsistency();
+            const code = ord.appliedPromoCode;
+            const meta = state.promoMeta[code];
+            if (meta) {
+                meta.usedCount = Math.max(0, (Number(meta.usedCount) || 1) - 1);
+                meta.usedBy = [];
+            }
+            try {
+                const localUsed = JSON.parse(localStorage.getItem('cp_used_promos_device_v1') || '[]');
+                if (Array.isArray(localUsed)) {
+                    localStorage.setItem('cp_used_promos_device_v1', JSON.stringify(localUsed.filter(x => x !== code)));
+                }
+            } catch (e) {}
+            if (state.clientUser && Array.isArray(state.clientUser.usedPromos)) {
+                state.clientUser.usedPromos = state.clientUser.usedPromos.filter(x => x !== code);
+                syncAccountToStorage();
+            }
+            saveCmsConfigToStorageAndCloud();
         }
 
         // 12. ACCOUNT SYSTEM: PIN LOGIN + OTP VERIFICATION + KZ PHONE VALIDATION
@@ -5805,7 +6058,8 @@
                 activeSceneTheme: state.activeSceneTheme || 'classic',
                 globalSalePercent: state.globalSalePercent || 0,
                 globalSaleTitle: state.globalSaleTitle || '',
-                customPromos: state.customPromos || { 'PETRO10': 0.10, 'COFFEE': 0.10 }
+                customPromos: state.customPromos || { 'PETRO10': 0.10, 'COFFEE': 0.10 },
+                promoMeta: state.promoMeta || {}
             };
             try {
                 localStorage.setItem('cp_cms_config_v5', JSON.stringify(cmsPayload));
@@ -5831,6 +6085,11 @@
             if (typeof cms.globalSalePercent === 'number') state.globalSalePercent = cms.globalSalePercent;
             if (cms.globalSaleTitle) state.globalSaleTitle = cms.globalSaleTitle;
             if (cms.customPromos && typeof cms.customPromos === 'object') state.customPromos = cms.customPromos;
+            if (cms.promoMeta && typeof cms.promoMeta === 'object') state.promoMeta = cms.promoMeta;
+            ensurePromoMetaConsistency();
+            if (state.promoCode && !checkPromoCodeEligibility(state.promoCode).valid) {
+                clearActivePromoCode();
+            }
             applySceneAndPromoBannerUI();
             renderVerticalStories();
             renderMenuSections();
@@ -5963,6 +6222,9 @@
             ord.paymentStatus = 'rejected';
             ord.status = 'rejected';
             ord.bonusCredited = false;
+            if (ord.appliedPromoCode) {
+                restorePromoCodeFromRejectedOrder(ord);
+            }
             logSecurityEvent('PAYMENT_REJECTED', `Заказ ${ord.id} отклонён (перевод ${ord.total} ₸ не поступил). Начисление бонусов заблокировано.`);
 
             if (typeof window.updateOrderStatus === 'function') {
@@ -6146,26 +6408,82 @@
         }
 
         function cmsAddPromoCode() {
+            ensurePromoMetaConsistency();
             const codeInp = document.getElementById('cms-new-promo-code');
             const pctInp = document.getElementById('cms-new-promo-pct');
+            const modeInp = document.getElementById('cms-new-promo-mode');
             const code = (codeInp ? codeInp.value : '').trim().toUpperCase().replace(/[^A-ZА-Я0-9]/g, '');
             const pct = Math.min(70, Math.max(5, parseInt(pctInp ? pctInp.value : '15', 10) || 15));
+            const mode = (modeInp && modeInp.value === 'once_total') ? 'once_total' : 'once_per_user';
             if (code.length < 3) {
                 showSystemToast('Промокоды', 'Короткий код', 'Введите промокод минимум из 3 символов (например, COFFEE20).');
                 return;
             }
-            if (!state.customPromos) state.customPromos = {};
             state.customPromos[code] = pct / 100;
+            state.promoMeta[code] = {
+                rate: pct / 100,
+                mode,
+                usedBy: [],
+                usedCount: 0
+            };
+            if (codeInp) codeInp.value = '';
             saveCmsConfigToStorageAndCloud();
             renderStaffDashboard();
-            showSystemToast('Промокод создан!', `${code} (−${pct}%)`, 'Гости уже могут применить этот промокод в корзине.');
+            showSystemToast('Промокод создан и синхронизирован!', `${code} (−${pct}%)`, mode === 'once_total' ? 'Режим: Разовый купон (сгорает после 1 заказа).' : 'Режим: 1 использование на каждого гостя.');
+        }
+
+        function cmsUpdateExistingPromo(code) {
+            ensurePromoMetaConsistency();
+            if (!state.customPromos || !state.customPromos[code]) return;
+            const pctInp = document.getElementById(`cms-edit-promo-pct-${code}`);
+            const modeSel = document.getElementById(`cms-edit-promo-mode-${code}`);
+            const newPct = Math.min(70, Math.max(5, parseInt(pctInp ? pctInp.value : '10', 10) || 10));
+            const newMode = (modeSel && modeSel.value === 'once_total') ? 'once_total' : 'once_per_user';
+            state.customPromos[code] = newPct / 100;
+            if (!state.promoMeta[code]) {
+                state.promoMeta[code] = { rate: newPct / 100, mode: newMode, usedBy: [], usedCount: 0 };
+            } else {
+                state.promoMeta[code].rate = newPct / 100;
+                state.promoMeta[code].mode = newMode;
+            }
+            if (state.promoCode === code) {
+                state.promoDiscountRate = newPct / 100;
+                updateCartViews();
+            }
+            saveCmsConfigToStorageAndCloud();
+            renderStaffDashboard();
+            showSystemToast('Промокод обновлён', `${code} → −${newPct}%`, `Новые условия промокода ${code} синхронизированы в облаке.`);
+        }
+
+        function cmsResetPromoUsage(code) {
+            ensurePromoMetaConsistency();
+            if (state.promoMeta && state.promoMeta[code]) {
+                state.promoMeta[code].usedBy = [];
+                state.promoMeta[code].usedCount = 0;
+            }
+            try {
+                const localUsed = JSON.parse(localStorage.getItem('cp_used_promos_device_v1') || '[]');
+                if (Array.isArray(localUsed)) {
+                    localStorage.setItem('cp_used_promos_device_v1', JSON.stringify(localUsed.filter(x => x !== code)));
+                }
+            } catch (e) {}
+            if (state.clientUser && Array.isArray(state.clientUser.usedPromos)) {
+                state.clientUser.usedPromos = state.clientUser.usedPromos.filter(x => x !== code);
+                syncAccountToStorage();
+            }
+            saveCmsConfigToStorageAndCloud();
+            renderStaffDashboard();
+            showSystemToast('Счётчик сброшен', `Промокод ${code} снова активен!`, 'Теперь гости снова могут применить этот промокод 1 раз.');
         }
 
         function cmsDeletePromoCode(code) {
             if (!state.customPromos || !state.customPromos[code]) return;
             delete state.customPromos[code];
+            if (state.promoMeta) delete state.promoMeta[code];
+            if (state.promoCode === code) clearActivePromoCode();
             saveCmsConfigToStorageAndCloud();
             renderStaffDashboard();
+            showSystemToast('Промокод удалён', code, `Промокод ${code} отключён и удалён из витрины.`);
         }
 
         function cmsSelectSceneTheme(themeKey) {
@@ -6391,22 +6709,69 @@
                             </div>
                         </div>
 
-                        <!-- 2. Promo Codes Manager -->
-                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3 shadow-sm">
-                            <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Управление промокодами корзины</h4>
-                            <div class="flex flex-wrap gap-2">
-                                ${promosEntries.map(([code, rate]) => `
-                                    <div class="inline-flex items-center gap-2 bg-cp-ochreSoft border border-cp-ochre px-3 py-1.5 rounded-xl font-mono text-xs font-bold text-cp-ink">
-                                        <span>${code} (−${Math.round(rate * 100)}%)</span>
-                                        <button type="button" onclick="cmsDeletePromoCode('${code}')" class="text-red-600 hover:text-red-800">✕</button>
-                                    </div>
-                                `).join('')}
+                        <!-- 2. Editable & Single-Use Synchronized Promo Codes Manager -->
+                        <div class="bg-white rounded-2xl p-5 border border-cp-border space-y-3.5 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <h4 class="font-display font-bold text-xs sm:text-sm uppercase text-cp-ink">Конструктор одноразовых и персональных промокодов</h4>
+                                    <p class="text-[11px] text-cp-muted">Изменяйте % скидки, тип ограничения (1 раз на гостя или 1 раз всего) и сбрасывайте счётчик использований. Всё синхронизируется через облако.</p>
+                                </div>
+                                <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">CLOUD SYNC ✓</span>
                             </div>
-                            <div class="flex flex-wrap gap-2 pt-1">
-                                <input id="cms-new-promo-code" type="text" placeholder="Код (напр. SUMMER20)" class="flex-1 bg-cp-pill rounded-xl px-3.5 py-2 font-mono text-xs font-bold uppercase focus:outline-none">
-                                <input id="cms-new-promo-pct" type="number" value="15" min="5" max="70" class="w-24 bg-cp-pill rounded-xl px-3 py-2 font-mono text-xs font-bold focus:outline-none" placeholder="% скидки">
-                                <button type="button" onclick="cmsAddPromoCode()" class="bg-cp-blue text-white text-xs font-bold px-4 py-2 rounded-xl">
-                                    + Добавить промокод
+
+                            <div class="space-y-2">
+                                ${promosEntries.map(([code, rate]) => {
+                                    ensurePromoMetaConsistency();
+                                    const meta = (state.promoMeta && state.promoMeta[code]) || { rate, mode: 'once_per_user', usedBy: [], usedCount: 0 };
+                                    const pctVal = Math.round((Number(rate) || 0.10) * 100);
+                                    const isExhausted = meta.mode === 'once_total' && (meta.usedCount >= 1 || (meta.usedBy && meta.usedBy.length >= 1));
+                                    return `
+                                        <div class="bg-cp-bg/80 rounded-2xl p-3 border ${isExhausted ? 'border-red-300 bg-red-50/40' : 'border-cp-border'} flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                                            <div class="flex items-center gap-2.5">
+                                                <span class="bg-cp-ink text-cp-ochre font-mono font-extrabold text-xs px-3 py-1.5 rounded-xl">${escapeHtml(code)}</span>
+                                                <div>
+                                                    <div class="font-bold text-cp-ink flex items-center gap-1.5">
+                                                        <span>Скидка −${pctVal}%</span>
+                                                        <span class="font-mono text-[10px] px-2 py-0.2 rounded-full ${isExhausted ? 'bg-red-600 text-white' : 'bg-white border border-cp-border text-cp-muted'}">
+                                                            ${isExhausted ? 'ИСПОЛЬЗОВАН (ЗАКРЫТ)' : `Использован: ${meta.usedCount || 0} раз`}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-[10px] text-cp-muted mt-0.5">
+                                                        Режим: <b>${meta.mode === 'once_total' ? 'Разовый купон (сгорает у всех после 1 заказа)' : '1 раз на каждого гостя / телефон'}</b>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                <input id="cms-edit-promo-pct-${escapeHtml(code)}" type="number" min="5" max="70" value="${pctVal}" class="w-16 bg-white border border-cp-border rounded-lg px-2 py-1 font-mono text-xs font-bold text-center" title="Процент скидки">
+                                                <select id="cms-edit-promo-mode-${escapeHtml(code)}" class="bg-white border border-cp-border rounded-lg px-2 py-1 text-[11px] font-bold">
+                                                    <option value="once_per_user" ${meta.mode === 'once_per_user' ? 'selected' : ''}>1 раз на гостя</option>
+                                                    <option value="once_total" ${meta.mode === 'once_total' ? 'selected' : ''}>1 раз всего (купон)</option>
+                                                </select>
+                                                <button type="button" onclick="cmsUpdateExistingPromo('${escapeHtml(code)}')" class="bg-cp-ink hover:bg-stone-800 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg transition">
+                                                    Сохранить
+                                                </button>
+                                                <button type="button" onclick="cmsResetPromoUsage('${escapeHtml(code)}')" class="bg-cp-blueSoft hover:bg-cp-blue hover:text-white text-cp-blue font-mono font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition" title="Обнулить счётчик, чтобы промокод снова работал">
+                                                    ↺ Сбросить (0)
+                                                </button>
+                                                <button type="button" onclick="cmsDeletePromoCode('${escapeHtml(code)}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-2.5 py-1.5 rounded-lg transition">
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-cp-border">
+                                <input id="cms-new-promo-code" type="text" placeholder="Новый код (напр. GIFT25)" class="bg-cp-pill rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold uppercase focus:outline-none">
+                                <input id="cms-new-promo-pct" type="number" value="15" min="5" max="70" class="bg-cp-pill rounded-xl px-3 py-2.5 font-mono text-xs font-bold focus:outline-none" placeholder="% скидки">
+                                <select id="cms-new-promo-mode" class="bg-cp-pill rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none">
+                                    <option value="once_per_user">1 раз на каждого гостя</option>
+                                    <option value="once_total">Строго 1 раз (сгорает)</option>
+                                </select>
+                                <button type="button" onclick="cmsAddPromoCode()" class="bg-cp-blue hover:bg-cp-blueDark text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                                    + Создать промокод
                                 </button>
                             </div>
                         </div>
@@ -7769,9 +8134,25 @@
             }
         }
 
+        function getCleanCashierDigits() {
+            const d = String(state.cashierPhone || '+7 (777) 902-33-99').replace(/\D/g, '');
+            return d.length >= 11 ? d : '77779023399';
+        }
+
+        function fillReceiptQuickChip(chipText) {
+            const inp = document.getElementById('payment-receipt-code-input');
+            if (inp) {
+                inp.value = chipText;
+                inp.classList.remove('ring-2', 'ring-red-500');
+            }
+            triggerStrongVibration('standard');
+        }
+
         function copyCashierPhoneForTransfer() {
             const { finalTotal } = calculateTotals();
-            copyTextSafe('+77779023399');
+            const rawDigits = '+' + getCleanCashierDigits();
+            const displayPhone = state.cashierPhone || '+7 (777) 902-33-99';
+            copyTextSafe(rawDigits);
             try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -7781,16 +8162,16 @@
             if (btn) {
                 const orig = btn.innerHTML;
                 btn.className = 'w-full bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm';
-                btn.innerHTML = '<span>✓ Номер +7 777 902-33-99 скопирован!</span>';
+                btn.innerHTML = `<span>✓ Номер ${escapeHtml(displayPhone)} скопирован!</span>`;
                 setTimeout(() => {
                     btn.className = 'w-full bg-cp-ink hover:bg-stone-800 text-white font-bold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm';
                     btn.innerHTML = orig;
                 }, 2500);
             }
             showSystemToast(
-                '+7 (777) 902-33-99',
+                displayPhone,
                 'Номер кассы скопирован',
-                `Номер +77779023399 скопирован! Вставьте его в «Переводы» вашего банка (сумма: ${finalTotal} ₸).`
+                `Номер ${rawDigits} (${state.cashierRecipientName || 'Касса'}) скопирован! Вставьте его в «Переводы» вашего банка (сумма: ${finalTotal} ₸).`
             );
         }
 
@@ -7849,11 +8230,22 @@
                 }
             });
 
+            syncCashierDetailsInDom();
+            const promoBadge = document.getElementById('kaspi-promo-badge');
+            if (promoBadge) {
+                if (state.promoCode && state.promoDiscountRate > 0) {
+                    promoBadge.textContent = `ПРОМОКОД ${state.promoCode} (−${Math.round(state.promoDiscountRate * 100)}%)`;
+                    promoBadge.classList.remove('hidden');
+                } else {
+                    promoBadge.classList.add('hidden');
+                }
+            }
             // Build real scannable QR code payload
             if (qrImg) {
+                const cDigits = getCleanCashierDigits();
                 const customMerchantLink = (method === 'kaspi' && state.kaspiPayUrl && state.kaspiPayUrl.includes('pay.kaspi.kz/pay/'))
                     ? state.kaspiPayUrl.trim()
-                    : `https://wa.me/77779023399?text=${encodeURIComponent(`Оплата заказа COFFEE PEOPLE (${cfg.name}): ${finalTotal} ₸, гость: ${guestName}`)}`;
+                    : `https://wa.me/${cDigits}?text=${encodeURIComponent(`Оплата заказа COFFEE PEOPLE (${cfg.name}): ${finalTotal} ₸, гость: ${guestName}`)}`;
                 qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(customMerchantLink)}`;
             }
         }
@@ -7922,7 +8314,19 @@
             updateBankModalUI();
             modal.classList.remove('hidden');
 
-            if (finalTotal === 0 || state.paymentMethod === 'card' || state.paymentMethod === 'at_bar') {
+            if (state.promoCode) {
+                const pCheck = checkPromoCodeEligibility(state.promoCode);
+                if (!pCheck.valid) {
+                    clearActivePromoCode();
+                    showSystemToast('Промокод недоступен', 'Одноразовый промокод уже использован', pCheck.message || 'Этот промокод уже был применён ранее.');
+                    return;
+                }
+            }
+            const recInp = document.getElementById('payment-receipt-code-input');
+            if (recInp && state.paymentMethod === 'at_bar') {
+                recInp.value = 'Оплата по Kaspi QR у стойки';
+            }
+            if (finalTotal === 0) {
                 completeKaspiPayment();
             } else {
                 kaspiBox.classList.remove('hidden');
@@ -7931,9 +8335,35 @@
         }
 
         function completeKaspiPayment() {
-            const { subtotal, finalTotal, bonusDisc } = calculateTotals();
+            const { subtotal, promoDisc, finalTotal, bonusDisc } = calculateTotals();
             const phone = getEffectiveOrderPhone();
             const guestName = getEffectiveCupName();
+
+            if (state.promoCode) {
+                const pCheck = checkPromoCodeEligibility(state.promoCode);
+                if (!pCheck.valid) {
+                    clearActivePromoCode();
+                    updateBankModalUI();
+                    showSystemToast('Промокод уже использован', 'Скидка сброшена', pCheck.message || 'Промокод можно использовать только 1 раз.');
+                    return;
+                }
+            }
+
+            const receiptInpCheck = document.getElementById('payment-receipt-code-input');
+            const rawReceiptVal = (receiptInpCheck && receiptInpCheck.value.trim()) ? receiptInpCheck.value.trim() : '';
+            if (finalTotal > 0 && rawReceiptVal.length < 2) {
+                if (receiptInpCheck) {
+                    receiptInpCheck.classList.add('shake-error', 'ring-2', 'ring-red-500');
+                    receiptInpCheck.focus();
+                    setTimeout(() => receiptInpCheck.classList.remove('shake-error'), 1000);
+                }
+                showSystemToast(
+                    'Подтверждение перевода',
+                    'УКАЖИТЕ 4 ЦИФРЫ ЧЕКА ИЛИ ВЫБЕРИТЕ КНОПКУ НИЖЕ',
+                    'Введите последние 4 цифры квитанции Kaspi / имя отправителя или нажмите одну из кнопок подтверждения под полем ввода.'
+                );
+                return;
+            }
 
             const nextSeq = generateNextOrderSeqNumber();
             const isResMode = state.orderTimingMode === 'reserve';
@@ -7965,8 +8395,10 @@
             const effectiveContact = (state.notifyChannel === 'telegram' && !validateKzMobilePhone(phone).valid)
                 ? 'Telegram Mini App'
                 : phone;
-            const earnedCashback = Math.max(25, Math.round(subtotal * 0.05));
+            // Cashback 5% is strictly calculated from the actual paid amount (finalTotal), 0 if 100% paid by bonuses!
+            const earnedCashback = finalTotal > 0 ? Math.max(25, Math.round(finalTotal * 0.05)) : 0;
             const spentBonusesAmount = (state.useBonuses && bonusDisc > 0) ? bonusDisc : 0;
+            const usedPromoCode = consumeActivePromoCodeOnOrder(orderId);
 
             const receiptInp = document.getElementById('payment-receipt-code-input');
             const receiptCodeVal = (receiptInp && receiptInp.value.trim()) ? receiptInp.value.trim() : '';
@@ -7988,6 +8420,8 @@
                 notifyChannel: state.notifyChannel || 'telegram',
                 paymentBank: selectedBankName,
                 paymentStatus: initialPaymentStatus,
+                appliedPromoCode: usedPromoCode || '',
+                promoDiscountAmount: promoDisc || 0,
                 receiptCode: receiptCodeVal || `Сверка ${selectedBankName} (${finalTotal} ₸)`,
                 bonusCredited: initialPaymentStatus === 'paid_by_bonuses',
                 items: summaryItems,
@@ -8148,13 +8582,15 @@
             const method = state.paymentMethod || 'kaspi';
             const cfg = BANK_CONFIGS[method] || BANK_CONFIGS.kaspi;
             const { finalTotal } = calculateTotals();
+            const rawDigits = '+' + getCleanCashierDigits();
+            const displayPhone = state.cashierPhone || '+7 (777) 902-33-99';
 
             // Always copy cashier phone to clipboard so user can paste immediately in bank app
-            copyTextSafe('+77779023399');
+            copyTextSafe(rawDigits);
             showSystemToast(
-                '+7 (777) 902-33-99',
+                displayPhone,
                 `${cfg.name} • Номер скопирован`,
-                `Номер кассы +77779023399 скопирован! Сумма к переводу: ${finalTotal} ₸.`
+                `Номер кассы ${rawDigits} (${state.cashierRecipientName || 'Касса'}) скопирован! Сумма к переводу: ${finalTotal} ₸.`
             );
 
             let targetUrl = cfg.appUrl;
@@ -8175,7 +8611,8 @@
 
         function sendReceiptToRealWhatsApp() {
             const text = state.lastOrderSummaryText || 'Здравствуйте! Мой предзаказ в COFFEE PEOPLE Петропавловск';
-            window.open(`https://wa.me/77779023399?text=${encodeURIComponent(text)}`, '_blank');
+            const cDigits = getCleanCashierDigits();
+            window.open(`https://wa.me/${cDigits}?text=${encodeURIComponent(text)}`, '_blank');
         }
 
         function closeKaspiTracker() {
